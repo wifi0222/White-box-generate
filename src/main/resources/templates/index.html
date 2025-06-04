@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>白盒测试用例生成系统</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- 引入 ACE 编辑器的 CSS 和 JavaScript 文件 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-java.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/mode-python.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-monokai.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-chrome.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-github.js"></script>
+</head>
+<body>
+<div class="container">
+  <h1>白盒测试用例生成系统</h1>
+
+  <form id="uploadForm" enctype="multipart/form-data">
+    <label>上传源代码文件:</label>
+    <input type="file" name="file" id="fileInput" required>
+    <div id="options" style="display: none;">
+      <label>选择语言:</label>
+      <select name="language" id="languageSelect" required>
+        <option value="java">Java</option>
+        <option value="python">Python</option>
+      </select>
+      <label>选择主题:</label>
+      <select name="theme" id="themeSelect">
+        <option value="ace/theme/monokai">Monokai</option>
+        <option value="ace/theme/chrome">Chrome</option>
+        <option value="ace/theme/github">GitHub</option>
+      </select>
+    </div>
+    <!-- 新增代码框 -->
+    <div id="editor" style="height: 300px; width: 100%; display: none;"></div>
+    <button type="submit">上传代码</button>
+  </form>
+  <div id="uploadMessage" class="message"></div>
+
+  <hr>
+
+  <!-- 初始隐藏生成 EvoSuite 测试用例按钮 -->
+  <button id="evoSuiteButton" onclick="generateEvoSuiteTest()" style="display: none;">生成EvoSuite测试用例（Java）</button>
+  <!-- 新增生成 Python 测试用例按钮 -->
+  <button id="pynguinButton" onclick="generatePynguinTest()" style="display: none;">生成 Pynguin 测试用例（Python）</button>
+  <!-- 新增 Python 测评按钮，初始隐藏 -->
+  <button id="pythonCoverageButton" onclick="performPythonCoverageEvaluation()" style="display: none;">进行Python覆盖率测评</button>
+  <!-- 新增 JaCoCo 测评按钮，初始隐藏 -->
+  <button id="jacocoButton" onclick="performJacocoEvaluation()" style="display: none;">进行JaCoCo测评</button>
+
+  <button id="javaapiButton" onclick="javagenerateLLMTest()" style="display: none;">生成LLM测试用例</button>
+  <button id="pythonapiButton" onclick="pythongenerateLLMTest()" style="display: none;">生成LLM测试用例</button>
+
+  <!-- 新增 Python 测评按钮，初始隐藏 -->
+  <button id="pythonCoverageButton2" onclick="performPythonCoverageEvaluation2()" style="display: none;">进行Python覆盖率测评</button>
+  <!-- 新增 JaCoCo 测评按钮，初始隐藏 -->
+  <button id="jacocoButton2" onclick="performJacocoEvaluation2()" style="display: none;">进行JaCoCo测评</button>
+  <div id="testResults">
+    <h2>生成的测试用例</h2>
+    <pre id="testOutput"></pre>
+    <!-- 新增用于显示测试用例的 ACE 编辑器 -->
+    <div id="testCaseEditor" style="height: 300px; width: 100%; display: none;"></div>
+  </div>
+</div>
+
+<script>
+  let editor;
+  let testCaseEditor;
+
+  // 初始化 ACE 编辑器
+  function initEditor(language, theme) {
+    editor = ace.edit("editor");
+    editor.setTheme(theme);
+    if (language === "java") {
+      editor.getSession().setMode("ace/mode/java");
+    } else if (language === "python") {
+      editor.getSession().setMode("ace/mode/python");
+    }
+  }
+
+  // 初始化测试用例 ACE 编辑器
+  function initTestCaseEditor(language, theme) {
+    testCaseEditor = ace.edit("testCaseEditor");
+    testCaseEditor.setTheme(theme);
+    if (language === "java") {
+      testCaseEditor.getSession().setMode("ace/mode/java");
+    } else if (language === "python") {
+      testCaseEditor.getSession().setMode("ace/mode/python");
+    }
+  }
+
+  // 处理文件选择事件
+  document.getElementById('fileInput').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (file) {
+      const fileName = file.name;
+      const ext = fileName.split('.').pop().toLowerCase();
+      if (ext!== 'java' && ext!== 'py') {
+        alert('请选择 Java 或 Python 文件！');
+        this.value = '';
+        return;
+      }
+      const language = ext === 'java'? 'java' : 'python';
+      const theme = document.getElementById('themeSelect').value;
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const code = event.target.result;
+        initEditor(language, theme);
+        editor.setValue(code);
+        document.getElementById('editor').style.display = 'block';
+        document.getElementById('options').style.display = 'block';
+        document.getElementById('languageSelect').value = language;
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  // 处理主题选择事件
+  document.getElementById('themeSelect').addEventListener('change', function () {
+    const theme = this.value;
+    const language = document.getElementById('languageSelect').value;
+    initEditor(language, theme);
+    const code = editor.getValue();
+    editor.setValue(code);
+  });
+
+  // 处理文件上传
+  document.getElementById('uploadForm').addEventListener('submit', async function (e) {
+    e.preventDefault(); // 阻止表单的默认提交行为
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const code = editor.getValue();
+    const blob = new Blob([code], { type: 'text/plain' });
+    const fileName = document.getElementById('fileInput').files[0].name;
+    const ext = fileName.split('.').pop().toLowerCase();
+    const selectedLanguage = document.getElementById('languageSelect').value;
+
+    // 判断文件后缀和选择的语言是否一致
+    if ((ext === 'java' && selectedLanguage!== 'java') || (ext === 'py' && selectedLanguage!== 'python')) {
+      const messageDiv = document.getElementById('uploadMessage');
+      messageDiv.textContent = '文件后缀和选择的语言不一致，请重新选择！';
+      messageDiv.className = 'message error';
+      return;
+    }
+
+    formData.delete('file');
+    formData.append('file', blob, fileName);
+
+    try {
+      const response = await fetch('/test/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      const messageDiv = document.getElementById('uploadMessage');
+      if (response.ok) {
+        messageDiv.textContent = result.message;
+        messageDiv.className = 'message success';
+        // 如果上传的是 Python 文件，显示 Pynguin 按钮
+        if (formData.get('language') === 'python') {
+          document.getElementById('pynguinButton').style.display = 'inline-block';
+          document.getElementById('pythonapiButton').style.display = 'inline-block';
+        }
+        // 如果上传的是 Java 文件，显示 EvoSuite 按钮
+        else if (formData.get('language') === 'java') {
+          document.getElementById('evoSuiteButton').style.display = 'inline-block';
+          document.getElementById('javaapiButton').style.display = 'inline-block';
+        }
+      } else {
+        messageDiv.textContent = result.message;
+        messageDiv.className = 'message error';
+      }
+    } catch (error) {
+      console.error('上传失败:', error);
+      const messageDiv = document.getElementById('uploadMessage');
+      messageDiv.textContent = '上传失败：网络错误';
+      messageDiv.className = 'message error';
+    }
+  });
+
+  // 点击按钮时触发生成测试用例的请求
+  async function generateTestCases(url, language) {
+    try {
+      const button = event.target;
+      button.disabled = true;
+      button.textContent = '生成中...';
+
+      const response = await fetch(url, { method: 'POST' });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message);
+
+        if (data.message.includes("成功")) {
+          const theme = document.getElementById('themeSelect').value;
+          initTestCaseEditor(language, theme);
+          document.getElementById('testCaseEditor').style.display = 'block';
+          testCaseEditor.setValue(data.testCaseCode);
+
+          if (language === 'python') {
+            document.getElementById('pythonCoverageButton').style.display = 'inline-block';
+            document.getElementById('pythonapiButton').style.display = 'none';
+            document.getElementById('pynguinButton').style.display = 'none';
+          } else if (language === 'java') {
+            document.getElementById('jacocoButton').style.display = 'inline-block';
+            document.getElementById('javaapiButton').style.display = 'none';
+            document.getElementById('evoSuiteButton').style.display = 'none';
+          }
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('生成失败:', errorData.message);
+        alert('生成失败: ' + errorData.message);
+      }
+    } catch (error) {
+      console.error('请求失败:', error);
+      alert('请求失败，请重试。');
+    } finally {
+      const button = event.target;
+      button.disabled = false;
+      button.textContent = button.id === 'evoSuiteButton'? '生成EvoSuite测试用例（Java）' :
+              button.id === 'pynguinButton'? '生成 Pynguin 测试用例（Python）' :
+                      button.id === 'javaapiButton'? '生成LLM测试用例' :
+                              '生成LLM测试用例';
+    }
+  }
+
+  async function generateEvoSuiteTest() {
+    await generateTestCases('/api/generateEvoSuiteTest', 'java');
+  }
+
+  async function generatePynguinTest() {
+    await generateTestCases('/api/generatePynguinTest', 'python');
+  }
+
+  async function pythongenerateLLMTest() {
+    await generateTestCases('/api/generateLLMTest', 'python');
+  }
+
+  async function javagenerateLLMTest() {
+    await generateTestCases('/api/generateLLMTest', 'java');
+  }
+
+  // 新增：处理 JaCoCo 测评请求
+  async function performJacocoEvaluation() {
+    try {
+      const response = await fetch('/api/performJacocoEvaluation', { method: 'POST' });
+      const data = await response.json();
+      alert(data.message);
+    } catch (error) {
+      console.error('请求失败:', error);
+      alert('请求失败，请重试。');
+    }
+  }
+
+  async function performJacocoEvaluation2() {
+    try {
+      const response = await fetch('/api/apiperformJacocoEvaluation', { method: 'POST' });
+      const data = await response.json();
+      alert(data.message);
+    } catch (error) {
+      console.error('请求失败:', error);
+      alert('请求失败，请重试。');
+    }
+  }
+
+  // 新增：处理 Python 覆盖率测评请求
+  async function performPythonCoverageEvaluation() {
+    try {
+      const response = await fetch('/api/performPythonCoverageEvaluation', { method: 'POST' });
+      const data = await response.json();
+      alert(data.message);
+    } catch (error) {
+      console.error('请求失败:', error);
+      alert('请求失败，请重试。');
+    }
+  }
+
+  async function performPythonCoverageEvaluation2() {
+    try {
+      const response = await fetch('/api/apiperformPythonCoverageEvaluation', { method: 'POST' });
+      const data = await response.json();
+      alert(data.message);
+    } catch (error) {
+      console.error('请求失败:', error);
+      alert('请求失败，请重试。');
+    }
+  }
+</script>
+</body>
+</html>

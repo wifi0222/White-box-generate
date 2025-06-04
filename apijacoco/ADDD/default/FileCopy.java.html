@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FileCopy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">FileCopy.java</span></div><h1>FileCopy.java</h1><pre class="source lang-java linenums">//鏂囦欢FileCopy.java
+import java.io.*;
+import java.io.IOException;
+<span class="nc" id="L4">import java.nio.file.Files;</span>
+
+<span class="nc" id="L6">//杩欐槸瀹為獙鍞竴鐨勭被锛屾病鏈夊叾浠栬緟鍔╃被锛�</span>
+<span class="nc bnc" id="L7" title="All 2 branches missed.">public class FileCopy {</span>
+<span class="nc bnc" id="L8" title="All 2 branches missed.">    //璇ユ柟娉曞垽鏂娊璞℃枃浠�/澶筬1鏄惁鏄娊璞℃枃浠�/澶筬2鐨勮嚜韬垨绁栧厛锛堣嚜韬篃鏄鍏堢殑涓�绉嶏級锛�</span>
+<span class="nc" id="L9">    private static boolean formerIsAncestor(File f1, File f2) {</span>
+        //鍦ㄨ繖閲屾坊鍔犱綘鐨勪唬鐮併�傛湰鏂规硶鏄緟鍔╂柟娉曪紝浣犲彲浠ョ敤鍒殑鍛藉悕锛屼篃鍙互鐢ㄥ埆鐨勬柟寮忓疄鐜拌鏂规硶銆�
+<span class="nc" id="L11">        try {</span>
+            // 灏濊瘯鑾峰彇f1鐨勮鑼冩枃浠惰矾寰�
+<span class="nc" id="L13">            File canonicalF1 = f1.getCanonicalFile();</span>
+            // 灏濊瘯鑾峰彇f2鐨勮鑼冩枃浠惰矾寰�
+            File canonicalF2 = f2.getCanonicalFile();
+            // 濡傛灉f1鍜宖2鐨勮鑼冩枃浠惰矾寰勭浉鍚岋紝鍒檉1鏄痜2鐨勭鍏�
+<span class="nc" id="L17">            if (canonicalF1.equals(canonicalF2))</span>
+<span class="nc bnc" id="L18" title="All 2 branches missed.">            {</span>
+<span class="nc" id="L19">                return true;</span>
+<span class="nc" id="L20">            }</span>
+            else
+<span class="nc" id="L22">            {</span>
+<span class="nc" id="L23">                // 鍚﹀垯锛岃幏鍙杅2鐨勭埗鏂囦欢澶�</span>
+<span class="nc" id="L24">                File parentF2 = canonicalF2.getParentFile();</span>
+                // 寰幆妫�鏌ョ埗鏂囦欢澶规槸鍚︿负f1
+<span class="nc bnc" id="L26" title="All 2 branches missed.">                while (parentF2 != null)</span>
+<span class="nc" id="L27">                {</span>
+                    // 濡傛灉鎵惧埌涓�涓笌f1鐩稿悓鐨勭埗鏂囦欢澶癸紝鍒欒繑鍥瀟rue
+<span class="nc" id="L29">                    if (parentF2.equals(canonicalF1))</span>
+<span class="nc" id="L30">                    {</span>
+<span class="nc" id="L31">                        return true;</span>
+<span class="nc" id="L32">                    }</span>
+<span class="nc" id="L33">                    // 缁х画妫�鏌ヤ笅涓�涓埗鏂囦欢澶�</span>
+                    parentF2 = parentF2.getParentFile();
+                }
+            }
+            // 濡傛灉鎵�鏈夌埗鏂囦欢澶归兘涓嶇瓑浜巉1锛屽垯杩斿洖false
+<span class="nc bnc" id="L38" title="All 2 branches missed.">            return false;</span>
+<span class="nc" id="L39">        }</span>
+        catch (IOException e)
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        {</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">            // 濡傛灉鍙戠敓寮傚父锛堜緥濡傛枃浠惰闂棶棰橈級锛屽垯鎶涘嚭寮傚父淇℃伅</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">            throw new RuntimeException(&quot;IOException was thrown when trying to get the canonical paths of the files.&quot;, e);</span>
+<span class="nc" id="L44">        }</span>
+    }
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">    //杩欐槸瀹炵幇鏂囦欢鎷疯礉鐨勪富瑕佹柟娉曘�備竴鑸潵璇达紝闇�瑕侀�掑綊鏂硅兘瀹炵幇銆�</span>
+<span class="nc" id="L48">    //褰撳嚭鐜板紓甯告椂锛屾嫹璐濅换鍔′笉鑳藉畬鍏ㄥ疄鐜帮紝鎴栧畬鍏ㄤ笉鑳藉疄鐜帮紝姝ゆ椂瑕佽繑鍥瀎alse銆�</span>
+    //濡傛灉鎷疯礉鎴愬姛锛屽垯杩斿洖true銆�
+private static boolean copyTo(File source, File destDir) {
+        //鍦ㄨ繖閲屾坊鍔犱綘鐨勪唬鐮侊紝娉ㄦ剰鍚勭鍙兘鎯呭喌鐨勫垽鏂��
+<span class="nc" id="L52">    if (source.isDirectory()) {// 濡傛灉婧愭槸鐩綍锛屽垯閬嶅巻鍏舵墍鏈夊瓙鏂囦欢/澶�</span>
+        File destSubDir = new File(destDir, source.getName());//鑾峰彇鐩爣瀛愮洰褰�
+        // 纭繚destSubDir鏄竴涓洰褰�
+        if (!destSubDir.isDirectory()) {
+<span class="nc bnc" id="L56" title="All 2 branches missed.">            throw new RuntimeException(&quot;鐩爣浣嶇疆涓嶆槸涓�涓洰褰�: &quot; + destSubDir.getAbsolutePath());</span>
+<span class="nc" id="L57">        }</span>
+//        if (destSubDir.exists()) {	// 濡傛灉鐩殑鏂囦欢宸插瓨鍦紝鍒欒緭鍑洪敊璇俊鎭苟杩斿洖 false
+<span class="nc" id="L59">//            System.out.println(&quot;Error: 鐩殑鏂囦欢宸插瓨鍦紝鎷疯礉鎿嶄綔琚彇娑堛��&quot;);</span>
+//            return false;
+//        }
+        // 閫掑綊鎷疯礉瀛愭枃浠跺拰瀛愭枃浠跺す
+        for (File child : source.listFiles()) {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">            if (!copyTo(child, destSubDir)) {</span>
+<span class="nc" id="L65">                return false;</span>
+<span class="nc" id="L66">            }</span>
+        }
+    }
+<span class="nc" id="L69">    else {</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        // 濡傛灉婧愭槸鏂囦欢锛屽垯鍒涘缓瀵瑰簲鐨勭洰鐨勬枃浠跺璞�</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        File destFile = new File(destDir, source.getName());</span>
+<span class="nc" id="L72">        if (destFile.exists()) {	// 濡傛灉鐩殑鏂囦欢宸插瓨鍦紝鍒欒緭鍑洪敊璇俊鎭苟杩斿洖 false</span>
+<span class="nc" id="L73">            System.out.println(&quot;Error: 鐩殑鏂囦欢宸插瓨鍦紝鎷疯礉鎿嶄綔琚彇娑堛��&quot;);</span>
+            return false;
+        }
+        // 浣跨敤 Files.copy 鏂规硶鎷疯礉鏂囦欢
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        try {</span>
+<span class="nc" id="L78">            Files.copy(source.toPath(),destDir.toPath());</span>
+<span class="nc" id="L79">        } catch (IOException e) {</span>
+            throw new RuntimeException(e);
+        }
+<span class="nc bnc" id="L82" title="All 4 branches missed.">//        try {</span>
+<span class="nc" id="L83">//            Files.copy(source.toPath(), destDir.toPath().resolve(source.getName()));</span>
+<span class="nc" id="L84">//        }</span>
+//        catch (IOException e) {
+//            return false; // 濡傛灉鎷疯礉杩囩▼涓嚭鐜板紓甯革紝鍒欒繑鍥� false
+<span class="nc" id="L87">//        }</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">    }</span>
+<span class="nc" id="L89">    // 濡傛灉鎵�鏈夋枃浠�/澶归兘鎷疯礉鎴愬姛锛屽垯杩斿洖 true</span>
+    return true;
+<span class="nc" id="L91">    }</span>
+
+<span class="nc" id="L93"></span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">    //杩欐槸绫荤殑涓绘柟娉曪紝閲岄潰鏈夐噸瑕佺殑鍋ュ．鎬у垽鏂姛鑳借瀹炵幇锛�</span>
+<span class="nc" id="L95">    //锛�1锛夊弬鏁颁釜鏁板繀椤诲ぇ浜庢垨绛変簬3涓�傚墠闈㈣嫢骞蹭釜鍙傛暟鏋勬垚婧愭枃浠�/澶硅矾寰勶紱鍚庨潰鑻ュ共涓弬鏁拌〃绀虹洰鐨勭洰褰曡矾寰勶紱涓棿涓�涓弬鏁� --# 琛ㄧず鎷疯礉鐨勬柟鍚戜负浠庡乏杈圭殑璺緞鍒板彸闈㈢殑璺緞銆�</span>
+    //锛�2锛夊鏋滄病鏈夋柟鍚戝弬鏁� --# 鍒欎负閿欒锛岀▼搴忛��鍑恒��
+<span class="nc" id="L97">    //锛�3锛夊鏋滄柟鍚戝弬鏁板湪鏈�宸︿晶鎴栨渶鍙充晶閮芥槸閿欒鐨勶紝绋嬪簭閫�鍑恒��</span>
+    //锛�4锛夋柟鍚戝弬鏁板乏渚х殑鍚勪釜鍙傛暟鎷兼帴鍑烘簮鏂囦欢/澶圭殑鏁翠綋璺緞锛屽畠浠箣闂寸敤绌烘牸鍒嗛殧锛涜繖璇存槑锛氳绋嬪簭鍙互瀵瑰甫鏈夌┖鏍肩殑鏂囦欢鍚�/鏂囦欢澶瑰悕杩涜鎿嶄綔銆�
+<span class="nc" id="L99">    //锛�5锛夊悓涓婏紝鍙傛暟鍙充晶鐨勫悇涓弬鏁版嫾鎺ュ嚭鐩殑鏂囦欢澶规暣浣撹矾寰勶紝瀹冧滑涔嬮棿鐢ㄧ┖鏍煎垎闅斻��</span>
+<span class="nc" id="L100">    //锛�6锛夊垽鏂簮鍜岀洰鐨勬槸鍚﹀瓨鍦紝涓嶅瓨鍦ㄥ垯缁堟鎿嶄綔銆�</span>
+    //锛�7锛夊垽鏂洰鐨勬枃浠跺す鏄惁鏄枃浠跺す锛屽鏋滀笉鏄紝鍒欑粓姝㈡搷浣溿��
+<span class="nc bnc" id="L102" title="All 2 branches missed.">    //锛�8锛夊垽鏂簮鏂囦欢澶规槸鍚︽槸鐩殑鏂囦欢澶圭殑绁栧厛锛堟垨鑷韩锛夛紝濡傛灉鏄紝鍒欎細鍑虹幇鏃犻檺鎷疯礉鐨勬儏鍐碉紝闇�瑕佺珛鍗崇粓姝㈡搷浣溿��</span>
+<span class="nc" id="L103">    //锛�9锛夊鏋滄墍鏈夋儏鍐垫甯革紝鍒欏彲浠ョ敤鏂囦欢娴佹嫹璐濇墍鏈夊唴瀹癸紝璋冪敤鏂规硶copyTo()鏂规硶銆�</span>
+<span class="nc" id="L104">    //锛�10锛夊湪涓婅堪鍚勭鎿嶄綔鍒ゆ柇鍑虹幇闂鏃讹紝涓�瀹氳鍙嶉鐢ㄦ埛閿欒鍘熷洜鍜岀被鍨嬨��</span>
+    //锛�11锛夊鏋滄嫹璐濇垚鍔燂紝鍒欏弽棣堢粰鐢ㄦ埛锛涘鏋滀笉鎴愬姛鎴栭儴鍒嗘垚鍔燂紝鍒欎篃瑕佸弽棣堢粰鐢ㄦ埛銆�
+<span class="nc bnc" id="L106" title="All 2 branches missed."> public static void main(String[] args) {</span>
+<span class="nc" id="L107">    // 鍙傛暟涓暟蹇呴』澶т簬鎴栫瓑浜� 3 涓��</span>
+<span class="nc" id="L108">     if (args.length &lt; 3) {</span>
+        System.out.println(&quot;閿欒锛� 杈撳叆鐨勫弬鏁颁笉澶燂紝鑷冲皯瑕佹湁3涓弬鏁帮細婧愯矾寰勩��--#銆佺洰鐨勭洰褰曡矾寰勩��&quot;);
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        System.exit(1);</span>
+<span class="nc" id="L111">    }</span>
+<span class="nc" id="L112"></span>
+    // 鏌ユ壘 --# 鏍囪鐨勪綅缃�
+<span class="nc bnc" id="L114" title="All 2 branches missed.">    int hashIndex = -1;</span>
+<span class="nc" id="L115">    for (int i = 0; i &lt; args.length; i++) {</span>
+<span class="nc" id="L116">        if (args[i].equals(&quot;--#&quot;)) {</span>
+            hashIndex = i;
+            break;
+<span class="nc" id="L119">        }</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">    }</span>
+<span class="nc" id="L121"></span>
+// 濡傛灉娌℃湁鏂瑰悜鍙傛暟 --# 鍒欎负閿欒锛岀▼搴忛��鍑恒��
+<span class="nc" id="L123">    if (hashIndex == -1) {</span>
+        System.out.println(&quot;閿欒:鏈嚭鐜版嫹璐濇柟鍚戠 --# 浣滀负鎷疯礉鏍囪鐨勭嫭绔嬪弬鏁般��&quot;);
+<span class="nc" id="L125">        System.exit(1);</span>
+    }
+ // 濡傛灉鏂瑰悜鍙傛暟鍦ㄦ渶宸︿晶鎴栨渶鍙充晶閮芥槸閿欒鐨勶紝绋嬪簭閫�鍑恒��
+    if(hashIndex == 0|| hashIndex == args.length-1){
+        System.out.println(&quot;閿欒:鎷疯礉鏂瑰悜绗﹀彧鑳藉嚭鐜板湪鍙傛暟鍒楄〃涓棿锛屼笉鑳藉嚭鐜板湪涓ょ銆�&quot;);
+        System.exit(1);
+    }
+    // 瑙ｆ瀽婧愯矾寰�
+    String sourcePath = args[0];
+    for (int i = 1; i &lt; hashIndex; i++) {
+        sourcePath += &quot; &quot; + args[i];
+    }
+    File source = new File(sourcePath);
+
+    // 瑙ｆ瀽鐩爣璺緞
+    String destPath = args[hashIndex + 1];
+    for (int i = hashIndex + 2; i &lt; args.length; i++) {
+        destPath += &quot; &quot; + args[i];
+    }
+    File destDir = new File(destPath);
+
+    // 鍒ゆ柇婧愬拰鐩殑鏄惁瀛樺湪锛屼笉瀛樺湪鍒欑粓姝㈡搷浣�
+    if (!source.exists()) {
+        System.out.println(&quot;閿欒: 婧愭枃浠跺す涓嶅瓨鍦ㄣ��&quot;);
+        System.exit(1);
+    }
+    if (!destDir.exists()) {
+        System.out.println(&quot;閿欒: 鐩殑鏂囦欢澶逛笉瀛樺湪銆�&quot;);
+        System.exit(1);
+    }
+
+// 鍒ゆ柇鐩殑鏂囦欢澶规槸鍚︽槸鏂囦欢澶癸紝濡傛灉涓嶆槸锛屽垯缁堟鎿嶄綔銆�
+    if (!destDir.isDirectory()) {
+        System.out.println(&quot;閿欒: 鐩殑鏂囦欢澶逛笉鏄枃浠跺す&quot;);
+        System.exit(1);
+    }
+
+    // 妫�鏌ユ簮鏄惁鏄洰鐨勭殑绁栧厛锛堟垨鑷韩锛�
+    if (formerIsAncestor(source, destDir) ) {
+        System.out.println(&quot;閿欒: 婧愭枃浠跺す 鏄洰鐨勬枃浠跺す 鏈韩鎴栧叾绁栧厛锛屼細鍑虹幇鏃犻檺寰幆鎷疯礉&quot;);
+        System.exit(1);
+    }
+
+// 濡傛灉鎵�鏈夋儏鍐垫甯革紝鍒欏彲浠ョ敤鏂囦欢娴佹嫹璐濇墍鏈夊唴瀹癸紝璋冪敤鏂规硶 copyTo() 鏂规硶銆�
+    // 鎵ц鎷疯礉
+    if (!copyTo(source, destDir)) {
+         System.out.println(&quot;閿欒: 鎶婃簮鏂囦欢鎷疯礉鑷崇洰鐨勬枃浠舵椂鍑虹幇閲嶅悕銆�&quot;);
+        System.out.println(&quot;鏂囦欢鎷疯礉杩囩▼涓嚭鐜板紓甯革紝鎷疯礉涓嶆垚鍔熸垨涓嶅畬鍏ㄦ垚鍔熴��&quot;);
+        System.exit(1);
+    }
+    else {
+    // 濡傛灉鎷疯礉鎴愬姛锛屽垯鍙嶉缁欑敤鎴凤紱
+        System.out.println(&quot;鏂囦欢鎷疯礉鎴愬姛&quot;);
+        }
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

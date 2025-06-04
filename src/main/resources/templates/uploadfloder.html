@@ -1,0 +1,372 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>项目文件浏览</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/theme-tomorrow_night.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/ace.css">
+  <link rel="stylesheet" type="text/css" href="/static/iconfont.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-monokai.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-chrome.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-github.js"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #ecf0f1;
+    }
+
+    #left-panel {
+      background-color: #34495e;
+      width: 280px;
+      border-right: 2px solid #2c3e50;
+    }
+
+    .input-container input {
+      background-color: #2c3e50;
+      color: white;
+      border: 1px solid #4C489D;
+      border-radius: 4px;
+    }
+
+    .input-container input::placeholder {
+      color: #95a5a6;
+    }
+
+    #load-button,#return-button {
+      background-color: #6A679E;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+
+    #load-button,#return-button:hover {
+      background-color: #5D54A4;
+      transform: translateY(-1px);
+    }
+
+    #file-tree {
+      color: white;
+    }
+
+    li {
+      padding: 8px 12px;
+      transition: all 0.2s ease;
+      border-radius: 4px;
+    }
+
+    /*li:hover {*/
+    /*  background-color: #4C489D;*/
+    /*}*/
+
+    .active {
+      background-color: #4C489D !important;
+      color: white;
+    }
+
+    .iconfont {
+      color: #95a5a6;
+      margin-right: 8px;
+    }
+
+    #right-panel {
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+
+    .theme-dropdown {
+      background-color: white;
+      border: 1px solid #6A679E;
+      color: #4C489D;
+    }
+
+    #editor {
+      border: 2px solid #6A679E;
+      border-radius: 6px;
+      background-color: white;
+    }
+
+    #output {
+      background-color: white;
+      border: 2px solid #6A679E;
+      border-radius: 6px;
+      color: #2c3e50;
+    }
+
+    #run-button {
+      background-color: #6A679E;
+      transition: all 0.3s ease;
+    }
+
+    #run-button:hover {
+      background-color: #5D54A4;
+    }
+
+    .loader {
+      border-top-color: #6A679E;
+    }
+  </style>
+</head>
+
+<body class="flex h-screen">
+<div id="left-panel" class="p-4 w-64 overflow-x-auto whitespace-nowrap">
+  <div class="input-container">
+    <input type="text" id="path-input" placeholder="输入项目文件路径"
+           class="border border-gray-300 p-2 w-full rounded-md">
+  </div>
+  <div class="button-container">
+    <button id="load-button"
+            class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition-colors">加载项目</button>
+  </div>
+  <ul id="file-tree" class="mt-4"></ul>
+  <button id="return-button" class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition-colors"  th:onclick="'window.location.href = \'codeManagement?userId=' + ${user.userId}  + '\'; return false;'">返回</button>
+</div>
+<div id="right-panel" class="flex-1 p-4">
+  <div class="theme-selector">
+    <label for="theme-select">选择皮肤:</label>
+    <select id="theme-select" class="theme-dropdown">
+      <option value="monokai">Monokai</option>
+      <option value="chrome">Chrome</option>
+      <option value="github">GitHub</option>
+    </select>
+    <!--    <button class="run-button"  th:onclick="'window.location.href = \'codeManagement?userId=' + ${user.userId}  + '\'; return false;'">返回</button>-->
+    <button id="run-button" class="bg-green-500 text-white p-2 rounded-md hover:bg-green-600 transition-colors ml-2 hidden" disabled>
+      运行 <span id="loader" class="loader hidden"></span>
+    </button>
+  </div>
+  <div id="editor" class="h-[70%] border border-gray-300 rounded-md"></div>
+  <div id="output" class="mt-4 border border-gray-300 p-2 h-[20%] overflow-y-auto rounded-md bg-gray-50"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/ace.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/mode-java.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/mode-python.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const loadButton = document.getElementById('load-button');
+    const runButton = document.getElementById('run-button');
+    const pathInput = document.getElementById('path-input');
+    const fileTree = document.getElementById('file-tree');
+    const editorDiv = document.getElementById('editor');
+    const outputDiv = document.getElementById('output');
+    const loader = document.getElementById('loader');
+
+    // 获取主题选择下拉框元素
+    const themeSelect = document.getElementById('theme-select');
+
+    // 存储当前打开文件的完整路径
+    let currentFilePath = '';
+
+    // 创建ACE编辑器实例
+    const editor = ace.edit(editorDiv);
+    editor.getSession().setOptions({
+      fontSize: "14px",
+      tabSize: 2,
+      readOnly: true
+    });
+    // 主题切换功能
+    themeSelect.addEventListener('change', () => {
+      const theme = themeSelect.value;
+      editor.setTheme(`ace/theme/${theme}`);
+    });
+
+    loadButton.addEventListener('click', function () {
+      const path = pathInput.value;
+      if (!path) {
+        alert('请输入项目文件路径');
+        return;
+      }
+
+      outputDiv.textContent = '正在加载文件...';
+
+      const encodedPath = encodeURIComponent(path);
+      fetch(`/api/getFiles?path=${encodedPath}`)
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+              })
+              .then(data => {
+                outputDiv.textContent = '';
+                fileTree.innerHTML = '';
+                buildFileTree(data, fileTree, path);
+              })
+              .catch(error => {
+                console.error('Error fetching files:', error);
+                outputDiv.textContent = `加载失败: ${error.message}`;
+              });
+    });
+
+    runButton.addEventListener('click', function () {
+      if (!currentFilePath) {
+        alert('请先打开一个Java或Python文件');
+        return;
+      }
+
+      // 显示加载状态
+      outputDiv.textContent = '正在准备运行...';
+      runButton.disabled = true;
+      loader.classList.remove('hidden');
+
+      const encodedPath = encodeURIComponent(currentFilePath);
+
+      if (currentFilePath.endsWith('.java')) {
+        fetch(`/api/runJavaCode?path=${encodedPath}`)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                  }
+                  return response.text();
+                })
+                .then(output => {
+                  outputDiv.textContent = output;
+                })
+                .catch(error => {
+                  console.error('Error running Java code:', error);
+                  outputDiv.textContent = `运行失败: ${error.message}`;
+                })
+                .finally(() => {
+                  runButton.disabled = false;
+                  loader.classList.add('hidden');
+                });
+      } else if (currentFilePath.endsWith('.py')) {
+        fetch(`/api/runPythonCode?path=${encodedPath}`)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                  }
+                  return response.text();
+                })
+                .then(output => {
+                  outputDiv.textContent = output;
+                })
+                .catch(error => {
+                  console.error('Error running Python code:', error);
+                  outputDiv.textContent = `运行失败: ${error.message}`;
+                })
+                .finally(() => {
+                  runButton.disabled = false;
+                  loader.classList.add('hidden');
+                });
+      } else {
+        outputDiv.textContent = '不支持的文件类型。请选择Java(.java)或Python(.py)文件。';
+        runButton.disabled = false;
+        loader.classList.add('hidden');
+      }
+    });
+
+    function buildFileTree(items, parentElement, basePath) {
+      items.forEach(item => {
+        const li = document.createElement('li');
+
+        if (item.type === 'folder') {
+          li.classList.add('folder');
+
+          // 文件夹图标
+          const folderIcon = document.createElement('i');
+          folderIcon.classList.add('iconfont', 'icon-folder-close');
+
+          // 展开/折叠图标
+          const toggleIcon = document.createElement('i');
+          toggleIcon.classList.add('iconfont', 'icon-arrow-right', 'ml-1');
+
+
+          li.appendChild(folderIcon);
+          li.appendChild(toggleIcon);
+          li.appendChild(document.createTextNode(` ${item.name}`));
+
+          const subUl = document.createElement('ul');
+          const newBasePath = `${basePath}/${item.name}`;
+          buildFileTree(item.children, subUl, newBasePath);
+          li.appendChild(subUl);
+
+          subUl.style.display = 'none';
+
+          li.addEventListener('click', function (event) {
+            event.stopPropagation();
+            const subUl = this.querySelector('ul');
+            const toggleIcon = this.querySelector('.ml-1');
+
+            if (subUl.style.display === 'none') {
+              subUl.style.display = 'block';
+              toggleIcon.className = 'iconfont icon-arrow-down ml-1'; // 展开状态图标
+            } else {
+              subUl.style.display = 'none';
+              toggleIcon.className = 'iconfont icon-arrow-right ml-1'; // 折叠状态图标
+            }
+          });
+        }
+        else {
+          li.classList.add('file');
+
+          const fileIcon = document.createElement('i');
+          fileIcon.classList.add('iconfont', 'icon-file');
+          if (item.name.endsWith('.java')) {
+            fileIcon.classList.add('fa', 'fa-file-code-o', 'text-yellow-500');
+          } else if (item.name.endsWith('.py')) {
+            fileIcon.classList.add('fa', 'fa-file-code-o', 'text-blue-500');
+          } else {
+            fileIcon.classList.add('fa', 'fa-file-text-o', 'text-gray-500');
+          }
+
+          li.appendChild(fileIcon);
+          li.appendChild(document.createTextNode(` ${item.name}`));
+
+          li.addEventListener('click', function (event) {
+            event.stopPropagation();
+            const activeLi = document.querySelector('li.active');
+            if (activeLi) {
+              activeLi.classList.remove('active');
+            }
+            this.classList.add('active');
+
+            const fullPath = `${basePath}/${item.name}`;
+            currentFilePath = fullPath; // 保存当前文件路径
+
+            outputDiv.textContent = '正在加载文件内容...';
+
+            const encodedPath = encodeURIComponent(fullPath);
+            fetch(`/api/getFileContent?path=${encodedPath}`, {
+              headers: {
+                'Accept': 'text/plain;charset=UTF-8'
+              },
+              responseType: 'text'
+            }).then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.text();
+            })
+                    .then(content => {
+                      outputDiv.textContent = '';
+                      editor.setValue(content);
+                      editor.clearSelection();
+                      editor.gotoLine(0);
+
+                      if (item.name.endsWith('.java') || item.name.endsWith('.py')) {
+                        editor.getSession().setMode(item.name.endsWith('.java') ? 'ace/mode/java' : 'ace/mode/python');
+                        runButton.classList.remove('hidden');
+                        runButton.disabled = false;
+                      } else {
+                        editor.getSession().setMode('ace/mode/text');
+                        runButton.classList.add('hidden');
+                        runButton.disabled = true;
+                      }
+                    })
+                    .catch(error => {
+                      console.error('Error fetching file content:', error);
+                      outputDiv.textContent = `加载文件内容失败: ${error.message}`;
+                    });
+          });
+        }
+        parentElement.appendChild(li);
+      });
+    }
+  });
+</script>
+</body>
+
+</html>

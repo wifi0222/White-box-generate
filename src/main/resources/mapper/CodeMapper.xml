@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.dao.CodeDao">
+
+    <!-- 通过codeId查询代码 -->
+    <select id="findCodeByCodeId" parameterType="Integer" resultType="com.example.pojo.Code">
+        SELECT * FROM code WHERE codeId = #{codeId}
+    </select>
+
+    <!-- 通过userId查询代码列表 -->
+    <select id="findCodesByUserId" parameterType="Integer" resultType="com.example.pojo.Code">
+        SELECT * FROM code WHERE userId = #{userId}
+    </select>
+
+    <!-- 插入代码 -->
+    <insert id="insertCode" parameterType="com.example.pojo.Code">
+        INSERT INTO code (codeName, codePath, codeType, version, updateTime, codeInfo, userId)
+        VALUES (#{codeName}, #{codePath}, #{codeType},  #{version}, #{updateTime}, #{codeInfo}, #{userId})
+    </insert>
+
+    <!-- 通过codeId删除代码 -->
+    <delete id="deleteCodeByCodeId" parameterType="Integer">
+        DELETE FROM code WHERE codeId = #{codeId}
+    </delete>
+
+    <!-- 更新代码信息 -->
+    <update id="updateCode" parameterType="com.example.pojo.Code">
+        UPDATE code
+        SET codeName = #{codeName},
+            codePath = #{codePath},
+            codeType = #{codeType},
+            version = #{version},
+            updateTime = #{updateTime},
+            codeInfo = #{codeInfo},
+            userId = #{userId}
+        WHERE codeId = #{codeId}
+    </update>
+
+
+    <select id="findByKey" resultType="com.example.pojo.Code">
+        SELECT *
+        FROM code
+        <where>
+            <if test="codeKey != null and codeKey != ''">
+                (CAST(codeId AS CHAR) LIKE CONCAT('%', #{codeKey}, '%')
+                OR codeName LIKE CONCAT('%', #{codeKey}, '%')
+                OR codeType LIKE CONCAT('%', #{codeKey}, '%')
+                OR updateTime LIKE CONCAT('%', #{codeKey}, '%'))
+            </if>
+        </where>
+    </select>
+    <select id="findCodeByPath" resultType="com.example.pojo.Code">
+        select * from code where codePath = #{codePath}
+    </select>
+    <select id="findfByName" resultType="com.example.pojo.Code">
+        select * from code where codeName=#{codeName};
+    </select>
+
+
+</mapper>

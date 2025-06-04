@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>白盒测试</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #ecf0f1; /* 全局背景色 */
+        }
+        .sidebar {
+            position: fixed;
+            width: 200px;
+            background-color: #34495e; /* 侧边栏背景色 */
+            color: white;
+            height: 100vh;
+            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.1); /* 侧边栏阴影效果 */
+        }
+        .content {
+            flex-grow: 1;
+            padding: 40px;
+            background-color: #f4f4f4;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            margin-left: 200px;
+        }
+
+        .formContent{
+            /*justify-content: center;*/
+            align-items: center;
+            margin: 100px auto;
+            background-color: #FFFFFF;
+            width: 60%;
+            max-height: 700px;
+            overflow-y: auto;
+
+        }
+        .formContent form{
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 水平居中 */
+            justify-items: center;
+            width: 100%;
+            max-width: 60%;
+            margin: 0 auto; /* 水平居中 */
+        }
+        .formContent .form-group {
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: space-between; /* 两端对齐，为label和input之间提供间距 */
+            margin-bottom: 20px;
+            width: 100%; /* 占满整个容器宽度 */
+        }
+        .formContent label {
+            flex-shrink: 0;
+            margin-right: 20px;
+            white-space: nowrap;
+            width: 150px;
+            color: #4C489D;
+        }
+        .formContent input[type="text"],
+        .formContent textarea {
+            flex-grow: 1; /* input和textarea占据剩余空间 */
+            margin-bottom: 0; /* 移除input和textarea的底部间距 */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            width: calc(100% - 150px); /* 减去label的宽度 */
+        }
+
+        .formContent textarea {
+            width: 400px; /* 固定宽度 */
+            resize: vertical;
+        }
+        .user-info {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .user-info a {
+            color: #95a5a6; /* 用户名超链接颜色设置为与侧边栏其他元素不同的颜色，更易区分 */
+            text-decoration: none;
+            font-size: 24px;  /* 设置用户名链接字体大小与原用户名显示字体大小一致 */
+            display: block;
+            padding: 10px;
+            transition: color 0.3s ease;  /* 添加颜色过渡效果，增强交互感 */
+        }
+        .user-info a:hover {
+            color: #e74c3c; /* 鼠标悬停时用户名链接颜色变化为更醒目的颜色 */
+        }
+        .sidebar a {
+            padding: 10px;
+            text-decoration: none;
+            color: white;
+            display: block;
+            background-color: #2c3e50; /* 侧边栏链接默认背景色 */
+            margin-bottom: 5px;
+            transition: background-color 0.3s ease; /* 平滑过渡效果 */
+            font-weight: 600; /* 侧边栏链接字体加粗 */
+            letter-spacing: 0.5px; /* 侧边栏链接字母间距 */
+            text-transform: uppercase; /* 侧边栏链接大写 */
+            text-align: center;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #4C489D; /* 侧边栏链接悬停和激活状态背景色 */
+        }
+        .sub-menu {
+            display: none;
+            padding-left: 20px;
+            background-color: #2c3e50; /* 二级菜单背景色 */
+        }
+        .sub-menu.active {
+            display: block;
+        }
+        .sub-menu a {
+            padding: 8px;
+            background-color: #34495e; /* 二级菜单项背景色 */
+            color: rgba(255, 255, 255, 0.7); /* 二级菜单项字体颜色 */
+        }
+        .sub-menu a:hover, .sub-menu a.active {
+            background-color: #4C489D; /* 二级菜单项悬停或选中时的背景色 */
+            color: white;
+        }
+
+        .module {
+            display: none;
+        }
+        .module.active {
+            display: block;
+        }
+        .message-container {
+            position: fixed; /* 固定定位，使其相对于浏览器窗口固定位置 */
+            bottom: 20px; /* 距离浏览器窗口底部20px */
+            left: 0;
+            right: 0;
+            text-align: center; /* 文本水平居中对齐 */
+        }
+        /* 新增退出系统按钮样式 */
+        .logout-btn {
+            background-color: #4C489D;;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px; /* 增大圆角半径 */
+            cursor: pointer;
+            transition: all 0.3s ease; /* 添加过渡效果 */
+            margin-top: auto;  /* 靠下对齐 */
+            margin-bottom: 20px;  /* 与底部保持一定距离 */
+            align-self: center;  /* 水平居中 */
+        }
+        .logout-btn:hover {
+            background-color: #4C489D;;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 鼠标悬停时添加阴影效果，增强立体感 */
+            transform: translateY(-2px); /* 鼠标悬停时按钮微微上移，营造点击感 */
+        }
+        /* 表单相关样式 */
+        form {
+            width: 100%;
+            padding: 20px;
+        }
+        label {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 5px;
+            display: inline-block; /* 让标签在一行内显示，便于布局 */
+        }
+        input[type="text"],
+        textarea {
+            width: 50%;/* 调整输入框和文本域宽度，使其在页面中占比更合适 */
+            padding: 12px 15px; /* 增加内边距，让输入内容与边框有合适间隔 */
+            border: 1px solid #ccc;
+            border-radius: 6px; /* 增大圆角半径，更显柔和 */
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 18px; /* 微调输入框和文本域之间的间距 */
+            transition: border-color 0.3s ease; /* 添加边框颜色过渡效果，增强交互感 */
+        }
+        input[type="text"]:focus,
+        textarea:focus {
+            border-color: #4CAF50; /* 输入框和文本域获取焦点时边框颜色变化，提示用户当前操作位置 */
+        }
+
+        h3 {
+            font-size: 22px;
+            color:#4C489D;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #6A679E; /* 按钮背景色 */
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin: 2px 0;
+            cursor: pointer;
+            border-radius: 4px; /* 圆角边框 */
+            text-transform: uppercase; /* 大写字母 */
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #5D54A4; /* 按钮悬停效果 */
+        }
+        .file-input {
+            padding: 4px;
+            font-size: 14px;
+            width: 150px; /* 调整文件选择框宽度 */
+            display: inline-block;
+            background-color: #6A679E;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .logout-btn {
+            background-color: #4C489D;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: auto;
+            margin-bottom: 30px;
+            align-self: center;
+        }
+        .logout-btn:hover {
+            background-color: #5D54A4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="user-info">
+        <a href="/personalInfo" class="username">用户名</a>  <!-- 将用户名做成超链接 -->
+    </div>
+    <a href="javascript:void(0);" onclick="showModule('codeManagement')" class="active">源代码管理</a>
+
+    <a href="javascript:void(0);" onclick="showModule('exampleManagement')">用例生成管理</a>
+    <div id="exampleManagementMenu" class="sub-menu">
+        <a href="/exampleGeneration" class="active">测试用例生成</a>
+        <a href="/exampleHistory">测试用例记录</a>
+    </div>
+
+    <a href="javascript:void(0);" onclick="showModule('resourceManagement')">数据资源配置</a>
+
+
+    <button class="logout-btn" onclick="logout()">退出系统</button>
+</div>
+
+<div class="content">
+    <div class="formContent">
+        <form id="teamForm" method="post" action="/modifyTeamInfo" enctype="multipart/form-data">
+111
+        </form>
+    </div>
+</div>
+
+<div class="message-container">
+
+</div>
+
+<script>
+    function showModule(module) {
+        var modules = document.getElementsByClassName('module');
+        for (var i = 0; i < modules.length; i++) {
+            modules[i].classList.remove('active');
+        }
+        var mainLinks = document.querySelectorAll('.sidebar a');
+        for (var i = 0; i < mainLinks.length; i++) {
+            mainLinks[i].classList.remove('active');
+        }
+        var subMenus = document.querySelectorAll('.sub-menu');
+        for (var i = 0; i < subMenus.length; i++) {
+            subMenus[i].classList.remove('active');
+        }
+        document.getElementById(module + 'Menu').classList.add('active');
+        document.querySelector('a[href="javascript:void(0);" onclick="showModule(\'' + module + '\')"]').classList.add('active');
+    }
+
+    window.onload = function() {
+        showModule('codeManagement');
+        document.querySelector('.sidebar a[onclick="showModule(\'codeManagement\')"]').classList.add('active');
+        document.getElementById('codeManagementMenu').classList.add('active');
+    }
+
+    function logout() {
+        if(confirm('确定要退出系统吗？')) {
+            fetch('/logout', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '/login';
+                    } else {
+                        alert('退出失败，请重试');
+                    }
+                })
+                .catch(error => {
+                    console.error('退出请求出错:', error);
+                    alert('退出请求出错，请重试');
+                });
+        }
+    }
+</script>
+</body>
+</html>

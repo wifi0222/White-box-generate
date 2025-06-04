@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.dao.DataSourceDao">
+
+    <!-- 通过userId查询数据源列表 -->
+    <select id="findByUserId" parameterType="Integer" resultType="com.example.pojo.DataSource">
+        SELECT * FROM data_source WHERE userId = #{userId}
+    </select>
+
+    <!-- 通过dataSourceId查询数据源 -->
+    <select id="findByDataSourceId" parameterType="Integer" resultType="com.example.pojo.DataSource">
+        SELECT * FROM data_source WHERE dataSourceId = #{dataSourceId}
+    </select>
+
+    <!-- 通过dataSourceName查询数据源列表 -->
+    <select id="findByDataSourceName" parameterType="String" resultType="com.example.pojo.DataSource">
+        SELECT * FROM data_source WHERE dataSourceName = #{dataSourceName}
+    </select>
+
+    <!-- 通过dataSourceType查询数据源列表 -->
+    <select id="findByDataSourceType" parameterType="String" resultType="com.example.pojo.DataSource">
+        SELECT * FROM data_source WHERE dataSourceType = #{dataSourceType}
+    </select>
+    <select id="findDataByKey" resultType="com.example.pojo.DataSource">
+        SELECT *
+        FROM data_source
+        <where>
+            <if test="dataKey != null and dataKey != ''">
+                (CAST(dataSourceId AS CHAR) LIKE CONCAT('%', #{dataKey}, '%')
+                OR dataSourceName LIKE CONCAT('%', #{dataKey}, '%')
+                OR dataSourceType LIKE CONCAT('%', #{dataKey}, '%')
+                OR updateTime LIKE CONCAT('%', #{dataKey}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 删除数据源 -->
+    <delete id="delete" parameterType="Integer">
+        DELETE FROM data_source WHERE dataSourceId = #{dataSourceId}
+    </delete>
+
+    <!-- 更新数据源信息 -->
+    <update id="update" parameterType="com.example.pojo.DataSource">
+        UPDATE data_source
+        SET dataSourceName = #{dataSourceName},
+            dataSourcePath = #{dataSourcePath},
+            dataSourceType = #{dataSourceType},
+            dataSourceInfo = #{dataSourceInfo},
+            updateTime = #{updateTime},
+            userId = #{userId}
+        WHERE dataSourceId = #{dataSourceId}
+    </update>
+
+    <!-- 插入数据源 -->
+    <insert id="insert" parameterType="com.example.pojo.DataSource">
+        INSERT INTO data_source (dataSourceName, dataSourcePath, dataSourceType, updateTime, dataSourceInfo, userId)
+        VALUES (#{dataSourceName}, #{dataSourcePath}, #{dataSourceType}, #{updateTime}, #{dataSourceInfo}, #{userId})
+    </insert>
+
+</mapper>

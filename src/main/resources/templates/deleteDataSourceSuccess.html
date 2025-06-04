@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>源代码管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            background-color: #ecf0f1;
+            /* 调整页面整体背景色为淡灰色，更显柔和 */
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .sidebar {
+            position: fixed;
+            width: 200px;
+            background-color: #34495e; /* 侧边栏背景色 */
+            color: white;
+            height: 100vh;
+            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.1); /* 侧边栏阴影效果 */
+        }
+        .content {
+            margin-left: 200px;  /* 给内容区域留出侧边栏的空间 */
+            padding: 40px;
+            background-color: #f4f4f4;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            max-height: 800px;
+            overflow-y: auto;
+            flex-grow: 1;  /* 让内容区域占据剩余的空间 */
+        }
+        .newcontent {
+            width: 70%;  /* 增加内容区域宽度 */
+            margin: 0 auto;
+            background-color: white;
+
+        }
+        .newcontent1{
+            width: 78%;  /* 增加内容区域宽度 */
+            margin: 0 auto;
+            padding: 10px;
+            margin:20px 20px;
+
+        }
+        .content textarea {
+            resize: vertical;
+        }
+        .content label {
+            color: #4C489D;
+        }
+
+        .user-info {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .user-info a {
+            color: #95a5a6;
+            /* 用户名超链接颜色设置为与侧边栏其他元素不同的颜色，更易区分 */
+            text-decoration: none;
+            font-size: 24px;
+            /* 设置用户名链接字体大小与原用户名显示字体大小一致 */
+            display: block;
+            padding: 10px;
+            transition: color 0.3s ease;
+            /* 添加颜色过渡效果，增强交互感 */
+        }
+
+        .user-info a:hover {
+            color: #e74c3c;
+            /* 鼠标悬停时用户名链接颜色变化为更醒目的颜色 */
+        }
+
+        .sidebar a {
+            padding: 10px;
+            text-decoration: none;
+            color: white;
+            display: block;
+            background-color: #2c3e50; /* 侧边栏链接默认背景色 */
+            margin-bottom: 5px;
+            transition: background-color 0.3s ease; /* 平滑过渡效果 */
+            font-weight: 600; /* 侧边栏链接字体加粗 */
+            letter-spacing: 0.5px; /* 侧边栏链接字母间距 */
+            text-transform: uppercase; /* 侧边栏链接大写 */
+            text-align: center;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #4C489D; /* 侧边栏链接悬停和激活状态背景色 */
+        }
+        .sub-menu {
+            display: none;
+            padding-left: 20px;
+            background-color: #2c3e50; /* 二级菜单背景色 */
+        }
+        .sub-menu.active {
+            display: block;
+        }
+        .sub-menu a {
+            padding: 8px;
+            background-color: #34495e; /* 二级菜单项背景色 */
+            color: rgba(255, 255, 255, 0.7); /* 二级菜单项字体颜色 */
+        }
+        .sub-menu a:hover, .sub-menu a.active {
+            background-color: #4C489D; /* 二级菜单项悬停或选中时的背景色 */
+            color: white;
+        }
+
+
+        .module {
+            display: none;
+        }
+
+        .module.active {
+            display: block;
+        }
+
+        .message-container {
+            position: fixed;
+            /* 固定定位，使其相对于浏览器窗口固定位置 */
+            bottom: 20px;
+            /* 距离浏览器窗口底部20px */
+            left: 0;
+            right: 0;
+            text-align: center;
+            /* 文本水平居中对齐 */
+        }
+        .message-container {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+        }
+        form {
+            width: 100%;
+        }
+        h2 {
+            font-size: 24px;
+            color: #4C489D;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            border: 1px solid #e0e0e0;
+        }
+        th {
+            background-color: #6b69a1;
+            color: white;
+            font-weight: bold;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 10px;
+        }
+        td.readonly {
+            background-color: #f0f0f0;
+            color: #777;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .form-group1 {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .hide {
+            display: none;
+        }
+        button.disabled {
+            background-color: #ccc;
+            color: #fff;
+            cursor: not-allowed;
+        }
+        button {
+            background-color: #6A679E;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin: 2px 0;
+            cursor: pointer;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #5D54A4;
+        }
+        .logout-btn {
+            background-color: #4C489D;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: auto;
+            margin-bottom: 30px;
+            align-self: center;
+        }
+        .logout-btn:hover {
+            background-color: #5D54A4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        .upload-btn {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 400px;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 90%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 900px;
+            margin: 0 auto;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+        }
+
+        /* 更具体的选择器 */
+        .content-header .search-form .form-group input#dataKey {
+            padding: 8px 12px;
+            border: 2px solid #6A679E;
+            border-radius: 4px;
+            width: 200px!important;
+            font-size: 14px;
+        }
+
+        .search-box button {
+            padding: 8px 20px;
+            background-color: #6A679E;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .search-box button:hover {
+            background-color: #5D54A4;
+        }
+
+        .upload-btn {
+            position: static; /* 移除绝对定位 */
+            margin-right: 20px; /* 添加右边距 */
+        }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="user-info">
+        <a th:href="@{/personalInfo(userId=${user.userId})}" class="username" th:text="${user.userName}"></a>
+    </div>
+    <a th:href="@{/codeManagement(userId=${user.userId})}">源代码管理</a>
+    <a th:href="@{/exampleGeneration(userId=${user.userId})}">测试用例生成</a>
+    <a th:href="@{/exampleHistory(userId=${user.userId})}">测试记录管理</a>
+    <a th:href="@{/resourceManagement(userId=${user.userId})}" class="active" style="background-color: #4C489D;">数据资源配置</a>
+
+    <button class="logout-btn" onclick="logout()">退出系统</button>
+</div>
+
+<div class="content">
+    <div class="success-message">数据资源删除成功！</div>
+    <div class="content-header">
+        <!-- 将div.search-box改为form表单 -->
+        <form action="/dataSelect" method="post" class="search-form">
+            <!-- 添加隐藏的userId参数 -->
+            <input type="hidden" name="userId" th:value="${user.userId}">
+
+            <div class="form-group">
+                <!-- 修改输入框的name属性 -->
+                <input type="text"
+                       id="dataKey"
+                       name="dataKey"
+                       placeholder="输入..."
+                       class="search-input">
+
+                <!-- 修改按钮为submit类型 -->
+                <button type="submit" class="search-btn">
+                    搜索
+                </button>
+            </div>
+        </form>
+
+        <button class="upload-btn" onclick="openModal()">上传数据资源</button>
+    </div>
+    <h2>数据资源列表</h2>
+    <div class="table-container">
+        <table>
+            <tr>
+                <th>数据资源ID</th>
+                <th>数据资源名称</th>
+                <th>数据资源类型</th>
+                <th>更新时间</th>
+                <th>操作</th>
+            </tr>
+            <tr th:if="${dataSourceList == null or dataSourceList.isEmpty()}">
+                <td colspan="5">没有信息。</td>
+            </tr>
+            <tr th:each="dataSource : ${dataSourceList}">
+                <td class="readonly" th:text="${dataSource.dataSourceId}"></td>
+                <td class="readonly" th:text="${dataSource.dataSourceName}"></td>
+                <td class="readonly" th:text="${dataSource.dataSourceType}"></td>
+                <td class="readonly" th:text="${dataSource.updateTime}"></td>
+                <td>
+                    <button class="view__button" th:onclick="'window.location.href = \'viewDataSource?dataSourceId=' + ${dataSource.dataSourceId} + '&userId=' + ${user.userId}  + '\'; return false;'">查看</button>
+                    <button class="delete__button" th:onclick="'if(confirm(\'确认删除该数据资源？\')){window.location.href = \'deleteDataSource?dataSourceId=' + ${dataSource.dataSourceId} + '&userId=' + ${user.userId} + '\'; return false;}'">删除</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>上传数据资源</h2>
+        <form method="post" action="/dataUpload" enctype="multipart/form-data">
+            <div class="form-group">
+                <input type="hidden" name="userId" th:value="${user.userId}">
+                <label for="dataFile">选择文件:</label>
+                <input type="file" id="dataFile" name="dataFile">
+            </div>
+            <div class="form-group">
+                <label for="dataInfo">数据资源详情:</label>
+                <textarea id="dataInfo" name="dataInfo" rows="4"></textarea>
+            </div>
+            <button type="submit">上传</button>
+        </form>
+    </div>
+</div>
+
+
+<script>
+    function showModule(module) {
+        var modules = document.getElementsByClassName('module');
+        for (var i = 0; i < modules.length; i++) {
+            modules[i].classList.remove('active');
+        }
+        var mainLinks = document.querySelectorAll('.sidebar a');
+        for (var i = 0; i < mainLinks.length; i++) {
+            mainLinks[i].classList.remove('active');
+        }
+        var subMenus = document.querySelectorAll('.sub-menu');
+        for (var i = 0; i < subMenus.length; i++) {
+            subMenus[i].classList.remove('active');
+        }
+        document.getElementById(module + 'Menu').classList.add('active');
+        document.querySelector('a[href="javascript:void(0);" onclick="showModule(\'' + module + '\')"]').classList.add('active');
+    }
+
+    window.onload = function() {
+        showModule('resourceManagement');
+        document.querySelector('.sidebar a[onclick="showModule(\'resourceManagement\')"]').classList.add('active');
+        document.getElementById('resourceManagement').classList.add('active');
+    }
+
+
+    function openModal() {
+        document.getElementById('myModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('myModal').style.display = 'none';
+    }
+
+    function logout() {
+        if(confirm('确定要退出系统吗？')) {
+            fetch('/logout', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '/login';
+                    } else {
+                        alert('退出失败，请重试');
+                    }
+                })
+                .catch(error => {
+                    console.error('退出请求出错:', error);
+                    alert('退出请求出错，请重试');
+                });
+        }
+    }
+</script>
+</body>
+</html>

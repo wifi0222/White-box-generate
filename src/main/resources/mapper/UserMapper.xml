@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.dao.UserDao">
+
+    <!-- 通过userTel查找用户 -->
+    <select id="findUserByUserTel" parameterType="String" resultType="com.example.pojo.User">
+        SELECT * FROM user WHERE userTel = #{userTel}
+    </select>
+
+    <!-- 更新用户信息 -->
+    <update id="updateUser" parameterType="com.example.pojo.User">
+        UPDATE user
+        SET userName = #{userName},
+            userTel = #{userTel},
+            password = #{password},
+            userInfo = #{userInfo}
+        WHERE userId = #{userId}
+    </update>
+
+    <!-- 插入用户 -->
+    <insert id="insertUser" parameterType="com.example.pojo.User">
+        INSERT INTO user (userName, userTel, password, userInfo)
+        VALUES (#{userName}, #{userTel}, #{password}, #{userInfo})
+    </insert>
+
+    <!-- 删除用户 -->
+    <delete id="deleteUser" parameterType="Integer">
+        DELETE FROM user WHERE userId = #{userId}
+    </delete>
+
+    <!-- 通过userId查找用户 -->
+    <select id="findUserByUserId" parameterType="Integer" resultType="com.example.pojo.User">
+        SELECT * FROM user WHERE userId = #{userId}
+    </select>
+
+</mapper>

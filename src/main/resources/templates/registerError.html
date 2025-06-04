@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>注册</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:400,700">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Raleway', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(90deg, #C7C5F4, #776BCC);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+            margin-bottom: 50px;
+        }
+
+        .container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #4C489D;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 16px;
+            color: #5D54A4;
+            margin-bottom: 8px;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #D1D1D4;
+            border-radius: 8px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: #6A679E;
+            outline: none;
+        }
+
+        .form-group input[type="radio"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .form-group textarea {
+            height: 120px;
+            resize: none;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-group button,
+        .form-group input[type="submit"],
+        .form-group input[type="reset"] {
+            background: #6A679E;
+            color: #fff;
+            font-size: 16px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 26px;
+            cursor: pointer;
+            width: 48%;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-group button:hover,
+        .form-group input[type="submit"]:hover,
+        .form-group input[type="reset"]:hover {
+            background-color: #5D54A4;
+        }
+
+        .form-group button.login-button {
+            background-color: #4C489D;
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .form-group button.login-button:hover {
+            background-color: #3B358B;
+        }
+
+        .status-check {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .status-check input {
+            width: 200px;
+            padding: 8px;
+            font-size: 14px;
+            margin-right: 10px;
+            border: 1px solid #D1D1D4;
+            border-radius: 8px;
+        }
+
+        .status-check input[type="submit"] {
+            background: #6A679E;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 26px;
+            transition: background-color 0.3s ease;
+        }
+
+        .status-check input[type="submit"]:hover {
+            background-color: #5D54A4;
+        }
+        .status-check p {
+            display: block;
+            font-size: 16px;
+            color: #5D54A4;
+            margin-bottom: 20px;
+        }
+
+        .form-group button.home-button {
+            background-color: #4C489D;
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .form-group button.home-button:hover {
+            background-color: #3B358B;
+        }
+        .success-message {
+            background-color: #d4edda;
+            color: #d83f3f;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 900px;
+            margin: 0 auto;
+        }
+
+        .error-message {
+            color: red;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <p class="error-message" id="errorMessage">注册失败</p>
+    <h2>注册</h2>
+
+    <!-- 注册表单 -->
+    <form method="post" action="registerCheck" onsubmit="return checkPassword()">
+        <div class="form-group">
+            <label for="userName">用户名：</label>
+            <input type="text" id="userName" name="userName" required>
+        </div>
+
+        <div class="form-group">
+            <label for="userTel">联系方式：</label>
+            <input type="text" id="userTel" name="userTel" pattern="\d{11}" title="请输入11位数字" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">设置密码：</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password1">确认密码：</label>
+            <input type="password" id="password1" name="password1" required>
+        </div>
+
+
+        <div class="form-group button-group">
+            <input type="submit" value="注册">
+            <input type="reset" value="重置">
+        </div>
+    </form>
+
+    <!-- 密码一致性校验 JavaScript -->
+    <script>
+        function checkPassword() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('password1').value;
+
+            if (password !== confirmPassword) {
+                alert("两次密码输入不一致，请重新输入！");
+                return false; // 阻止表单提交
+            }
+            return true; // 允许表单提交
+        }
+    </script>
+</div>
+</body>
+</html>

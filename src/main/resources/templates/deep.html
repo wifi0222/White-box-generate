@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Caller</title>
+</head>
+<body>
+<h1>Call AI API</h1>
+<form action="/callAI" method="post">
+  <label for="input">Input:</label>
+  <input type="text" id="input" name="input" value="Hello, AI!">
+  <button type="submit">Call AI</button>
+</form>
+<div th:if="${response != null}">
+  <h2>Response:</h2>
+  <pre th:text="${response}"></pre>
+</div>
+</body>
+</html>

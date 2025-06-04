@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.dao.TestResultDao">
+
+    <!-- 通过userId查询测试结果列表 -->
+    <select id="findByUserId" parameterType="Integer" resultType="com.example.pojo.TestResult">
+        SELECT * FROM test_result WHERE userId = #{userId}
+    </select>
+
+    <!-- 通过testId查询测试结果 -->
+    <select id="findByTestId" parameterType="Integer" resultType="com.example.pojo.TestResult">
+        SELECT * FROM test_result WHERE testId = #{testId}
+    </select>
+
+    <!-- 通过codeId查询测试结果列表 -->
+    <select id="findByCodeId" parameterType="Integer" resultType="com.example.pojo.TestResult">
+        SELECT * FROM test_result WHERE codeId = #{codeId}
+    </select>
+
+    <!-- 通过testTime查询测试结果列表 -->
+    <select id="findByTestTime" parameterType="String" resultType="com.example.pojo.TestResult">
+        SELECT * FROM test_result WHERE testTime = #{testTime}
+    </select>
+
+    <!-- 通过testMethod查询测试结果列表 -->
+    <select id="findByTestMethod" parameterType="String" resultType="com.example.pojo.TestResult">
+        SELECT * FROM test_result WHERE testMethod = #{testMethod}
+    </select>
+
+    <select id="findByCodeIdandMethod" parameterType="map" resultType="com.example.pojo.TestResult">
+        SELECT * FROM test_result WHERE codeId = #{codeId} AND testMethod = #{testMethod}
+    </select>
+
+    <select id="findTestByKey" resultType="com.example.pojo.TestResult">
+        SELECT
+        *
+        FROM
+        test_result tr
+        JOIN
+        code c ON tr.codeId = c.codeId
+
+        <where>
+            <if test="testKey != null and testKey != ''">
+                CAST(tr.testId AS CHAR) LIKE CONCAT('%', #{testKey}, '%') OR
+                c.codeName LIKE CONCAT('%', #{testKey}, '%') OR
+                tr.testTime LIKE CONCAT('%', #{testKey}, '%') OR
+                tr.testMethod LIKE CONCAT('%', #{testKey}, '%');
+            </if>
+        </where>
+    </select>
+    <select id="findByExamplePath" resultType="com.example.pojo.TestResult">
+        select * from test_result where examplePath=#{examplePath};
+    </select>
+
+    <!-- 插入测试结果 -->
+    <insert id="insert" parameterType="com.example.pojo.TestResult">
+        INSERT INTO test_result (codeId, examplePath, judgement, testTime, testMethod, userId)
+        VALUES (#{codeId}, #{examplePath}, #{judgement}, #{testTime}, #{testMethod}, #{userId})
+    </insert>
+
+    <!-- 删除测试结果 -->
+    <delete id="delete" parameterType="Integer">
+        DELETE FROM test_result WHERE testId = #{testId}
+    </delete>
+
+    <!-- 修改测试结果 -->
+    <update id="update" parameterType="com.example.pojo.TestResult">
+        UPDATE test_result
+        SET codeId = #{codeId},
+            examplePath = #{examplePath},
+            judgement = #{judgement},
+            testTime = #{testTime},
+            testMethod = #{testMethod},
+            userId = #{userId}
+        WHERE testId = #{testId}
+    </update>
+
+</mapper>
