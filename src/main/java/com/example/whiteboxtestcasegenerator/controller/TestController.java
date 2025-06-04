@@ -345,7 +345,8 @@ public class TestController {
                 result.put("message", "Java 测试用例生成成功！");
                 session.setAttribute("generatedTestDir", outputDir.toString());
                 // 读取生成的测试用例文件内容
-                String testCaseCode = readTestCaseFile(outputDir, className + "_ESTest.java");
+                Path estestFilePath = findESTestFilePath(Paths.get(outputDir.toString()), className);
+                String testCaseCode = readTestCaseFile(estestFilePath);
                 System.out.println(testCaseCode);
                 result.put("testCaseCode", testCaseCode);
 
@@ -353,7 +354,7 @@ public class TestController {
                 TestResult r=new TestResult();
                 String codePath=filePath;
 
-                Path estestpath = Paths.get(String.valueOf(outputDir), className + "_ESTest.java");
+                Path estestpath = estestFilePath;
                 r.setExamplePath(estestpath.toString());
                 Code c=codeService.findCodeByPath(codePath);
                 if(c!=null){
@@ -1787,6 +1788,20 @@ public class TestController {
     private String readTestCaseFile(Path directory, String fileName) {
         StringBuilder content = new StringBuilder();
         Path filePath = directory.resolve(fileName);
+        if (Files.exists(filePath)) {
+            try (BufferedReader reader = Files.newBufferedReader(filePath)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            } catch (IOException e) {
+                System.err.println("读取测试用例文件时出错: " + e.getMessage());
+            }
+        }
+        return content.toString();
+    }
+    private String readTestCaseFile(Path filePath) {
+        StringBuilder content = new StringBuilder();
         if (Files.exists(filePath)) {
             try (BufferedReader reader = Files.newBufferedReader(filePath)) {
                 String line;
