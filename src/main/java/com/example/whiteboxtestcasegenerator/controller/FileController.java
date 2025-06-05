@@ -110,6 +110,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -167,6 +168,7 @@ public class FileController {
 
         StringBuilder output = new StringBuilder();
         Path filePath = Paths.get(path);
+        System.out.println("文件路径: " + path);
 
         // 验证文件存在
         if (!Files.exists(filePath)) {
@@ -180,58 +182,44 @@ public class FileController {
 
         String className = filePath.getFileName().toString().replace(".java", "");
         Path parentDir = filePath.getParent();
+        Path sourceDir = parentDir; // 源文件所在目录
 
         try {
             // 创建临时目录用于编译
             Path tempDir = Files.createTempDirectory("java-compile-");
 
-            // 编译 Java 代码
-            ProcessBuilder compileBuilder = new ProcessBuilder(
-                    "javac",
-                    "-encoding", "UTF-8",
-                    "-d", tempDir.toString(),
-                    path
-            );
-
-            // 设置工作目录
-            compileBuilder.directory(parentDir.toFile());
-
-            Process compileProcess = compileBuilder.start();
-
-            // 获取编译错误输出
-            BufferedReader compileErrorReader = new BufferedReader(
-                    new InputStreamReader(compileProcess.getErrorStream())
-            );
-
-            String line;
-            while ((line = compileErrorReader.readLine()) != null) {
-                output.append("Compile Error: ").append(line).append("\n");
+            // 第一步：扫描并编译当前目录下的所有Java文件
+            List<Path> javaFiles = findJavaFiles(sourceDir);
+            if (javaFiles.isEmpty()) {
+                return "Error: No Java files found in directory - " + sourceDir;
             }
 
-            int compileExitCode = compileProcess.waitFor();
-            if (compileExitCode != 0) {
-                output.append("Compilation failed with exit code: ").append(compileExitCode).append("\n");
+            // 编译所有Java文件
+            boolean compileSuccess = compileJavaFiles(javaFiles, tempDir, output);
+            if (!compileSuccess) {
                 return output.toString();
             }
 
-            // 运行 Java 代码
+
+            // 第二步：运行指定的Java类
+            String packageName = extractPackageName(filePath);
+            String fullClassName = (packageName.isEmpty() ? className : packageName + "." + className);
+
             ProcessBuilder runBuilder = new ProcessBuilder(
                     "java",
                     "-Dfile.encoding=UTF-8",
                     "-cp", tempDir.toString(),
-                    className
+                    fullClassName
             );
 
-            // 设置工作目录
             runBuilder.directory(parentDir.toFile());
-
             Process runProcess = runBuilder.start();
 
             // 获取标准输出
             BufferedReader runOutputReader = new BufferedReader(
                     new InputStreamReader(runProcess.getInputStream())
             );
-
+            String line;
             while ((line = runOutputReader.readLine()) != null) {
                 output.append(line).append("\n");
             }
@@ -240,19 +228,83 @@ public class FileController {
             BufferedReader runErrorReader = new BufferedReader(
                     new InputStreamReader(runProcess.getErrorStream())
             );
-
             while ((line = runErrorReader.readLine()) != null) {
                 output.append("Error: ").append(line).append("\n");
             }
 
             int runExitCode = runProcess.waitFor();
+            output.append("程序退出码: ").append(runExitCode).append("\n");
 
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            output.append("Error: ").append(e.getMessage()).append("\n");
+            output.append("运行时错误: ").append(e.getMessage()).append("\n");
         }
 
         return output.toString();
+    }
+
+    // 查找目录下所有Java文件
+    private List<Path> findJavaFiles(Path directory) throws IOException {
+        List<Path> javaFiles = new ArrayList<>();
+        Files.walk(directory)
+                .filter(path -> path.toString().endsWith(".java"))
+                .forEach(javaFiles::add);
+        return javaFiles;
+    }
+
+    // 编译多个Java文件
+    private boolean compileJavaFiles(List<Path> javaFiles, Path tempDir, StringBuilder output)
+            throws IOException, InterruptedException {
+        if (javaFiles.isEmpty()) {
+            output.append("警告: 未找到可编译的Java文件\n");
+            return false;
+        }
+
+        // 构建编译命令参数
+        List<String> compileArgs = new ArrayList<>();
+        compileArgs.addAll(Arrays.asList("javac", "-encoding", "UTF-8", "-d", tempDir.toString()));
+        javaFiles.forEach(path -> compileArgs.add(path.toString()));
+
+        ProcessBuilder compileBuilder = new ProcessBuilder(compileArgs);
+        compileBuilder.redirectErrorStream(true); // 合并错误流和输出流
+
+        Process compileProcess = compileBuilder.start();
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(compileProcess.getInputStream())
+        );
+
+        String line;
+        boolean hasError = false;
+        while ((line = reader.readLine()) != null) {
+            if (line.contains("error") || line.contains("Error")) {
+                hasError = true;
+            }
+            output.append("编译输出: ").append(line).append("\n");
+        }
+
+        int exitCode = compileProcess.waitFor();
+        if (exitCode != 0) {
+            output.append("编译失败，退出码: ").append(exitCode).append("\n");
+            return false;
+        }
+        return true;
+    }
+
+    // 提取包名（不变）
+    private String extractPackageName(Path filePath) throws IOException {
+        try (BufferedReader reader = Files.newBufferedReader(filePath)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith("package ")) {
+                    int endIndex = line.indexOf(';');
+                    if (endIndex > 0) {
+                        return line.substring("package ".length(), endIndex).trim();
+                    }
+                }
+            }
+        }
+        return "";
     }
 
     @GetMapping(value = "/api/runPythonCode", produces = "text/plain;charset=UTF-8")

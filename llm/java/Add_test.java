@@ -2,27 +2,40 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class Add_test {
+    
     @Test
     public void testAddBothOne() {
         Add adder = new Add();
         assertEquals(2, adder.add(1, 1));
     }
-
+    
     @Test
-    public void testAddFirstOne() {
+    public void testAddFirstNotOne() {
         Add adder = new Add();
-        assertEquals(0, adder.add(1, 0));
+        assertEquals(0, adder.add(2, 1));
     }
-
+    
     @Test
-    public void testAddSecondOne() {
+    public void testAddSecondNotOne() {
         Add adder = new Add();
-        assertEquals(0, adder.add(0, 1));
+        assertEquals(0, adder.add(1, 2));
     }
-
+    
     @Test
     public void testAddNeitherOne() {
         Add adder = new Add();
         assertEquals(0, adder.add(2, 2));
+    }
+    
+    @Test
+    public void testAddNegativeNumbers() {
+        Add adder = new Add();
+        assertEquals(0, adder.add(-1, -1));
+    }
+    
+    @Test
+    public void testAddZero() {
+        Add adder = new Add();
+        assertEquals(0, adder.add(0, 0));
     }
 }
