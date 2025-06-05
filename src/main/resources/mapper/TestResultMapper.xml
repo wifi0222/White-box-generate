@@ -29,8 +29,8 @@
         SELECT * FROM test_result WHERE testMethod = #{testMethod}
     </select>
 
-    <select id="findByCodeIdandMethod" parameterType="map" resultType="com.example.pojo.TestResult">
-        SELECT * FROM test_result WHERE codeId = #{codeId} AND testMethod = #{testMethod}
+    <select id="findByCodeIdandMethodandUserId" parameterType="map" resultType="com.example.pojo.TestResult">
+        SELECT * FROM test_result WHERE codeId = #{codeId} AND testMethod = #{testMethod} AND userId = #{userId}
     </select>
 
     <select id="findTestByKey" resultType="com.example.pojo.TestResult">

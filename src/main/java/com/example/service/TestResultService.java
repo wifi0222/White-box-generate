@@ -20,7 +20,7 @@ public interface TestResultService {
     // 通过testMethod查询测试结果列表
     List<TestResult> findByTestMethod(String testMethod);
 
-    List<TestResult> findByCodeIdandMethod(Integer codeId,String testMethod);
+    List<TestResult> findByCodeIdandMethodandUserId(Integer codeId,String testMethod,Integer userId);
 
     // 插入测试结果
     int insert(TestResult testResult);

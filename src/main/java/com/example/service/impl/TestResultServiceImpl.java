@@ -41,8 +41,8 @@ public class TestResultServiceImpl implements TestResultService {
     }
 
     @Override
-    public List<TestResult> findByCodeIdandMethod(Integer codeId, String testMethod) {
-        return testResultDao.findByCodeIdandMethod(codeId, testMethod);
+    public List<TestResult> findByCodeIdandMethodandUserId(Integer codeId, String testMethod,Integer userId) {
+        return testResultDao.findByCodeIdandMethodandUserId(codeId, testMethod,userId);
     }
 
     @Override

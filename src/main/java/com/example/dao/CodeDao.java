@@ -13,6 +13,7 @@ public interface CodeDao {
     List<Code> findCodesByUserId(Integer userId);
     Code findCodeByPath(String codePath);
     Code findfByName(String codeName);
+    Code findCodeByPathandUserId(String codePath, Integer userId);
 
     // 插入代码
     int insertCode(Code code);

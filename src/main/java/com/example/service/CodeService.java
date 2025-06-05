@@ -12,6 +12,7 @@ public interface CodeService {
 
 
     Code findCodeByPath(String codePath);
+    Code findCodeByPathandUserId(String codePath,Integer userId);
 
     // 通过userId查询代码列表
     List<Code> findCodesByUserId(Integer userId);

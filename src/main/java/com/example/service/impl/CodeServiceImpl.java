@@ -30,6 +30,11 @@ public class CodeServiceImpl implements CodeService {
     }
 
     @Override
+    public Code findCodeByPathandUserId(String codePath,Integer userId) {
+        return codeDao.findCodeByPathandUserId(codePath,userId);
+    }
+
+    @Override
     public List<Code> findCodesByUserId(Integer userId) {
         return codeDao.findCodesByUserId(userId);
     }

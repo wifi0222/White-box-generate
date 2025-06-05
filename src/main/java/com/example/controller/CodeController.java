@@ -40,69 +40,6 @@ public class CodeController {
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 
-    // 处理通过ID加载的代码内容上传
-    @PostMapping("/test/uploadContent")
-    @ResponseBody
-    public Map<String, String> uploadCodeContent(
-            @RequestParam("codeContent") String codeContent,
-            @RequestParam("codeName") String codeName,
-            @RequestParam("codeType") String codeType,
-            @RequestParam Integer userId,
-            HttpSession session, Model model) {
-        Map<String, String> response = new HashMap<>();
-
-        try {
-            // 确定子目录路径
-            String subDir = codeType.equals(".java") ? "uploaded-code/java" : "uploaded-code/python";
-            Path uploadPath = Paths.get(subDir).toAbsolutePath();
-
-            // 如果目录不存在，则创建目录
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            // 构建目标文件路径
-            Path dest = uploadPath.resolve(codeName);
-
-            // 保存代码内容到文件
-            try (BufferedWriter writer = Files.newBufferedWriter(dest, StandardCharsets.UTF_8)) {
-                writer.write(codeContent);
-            }
-
-            session.setAttribute("uploadedFilePath", dest.toString());
-            session.setAttribute("language", codeType.equals(".java") ? "java" : "python");
-            response.put("message", "上传成功：" + codeName);
-
-            // 更新或插入代码到数据库
-            Code c = codeService.findByName(codeName);
-            if (c == null) {
-                c = new Code();
-                c.setCodeName(codeName);
-            }
-
-            c.setCodePath(dest.toString());
-            c.setCodeType(codeType);
-            LocalDateTime currentDateTime = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            String time = currentDateTime.format(formatter);
-            c.setUpdateTime(time);
-            c.setUserId(userId);
-            if (c.getCodeId() == null) {
-                codeService.insertCode(c);
-            } else {
-                codeService.updateCode(c);
-            }
-
-            User user = userService.findUserByUserId(userId);
-            model.addAttribute("user", user);
-
-        } catch (IOException e) {
-            System.out.println("上传失败：" + e.getMessage());
-            response.put("message", "上传失败：" + e.getMessage());
-        }
-
-        return response;
-    }
     @RequestMapping(value = "/codeUpload")
     public String toCodeUpload(Model model, @RequestParam("userId") Integer userId, @RequestParam("codeFile") MultipartFile codeFile, @RequestParam("codeInfo") String codeInfo,HttpSession session) {
         // 检查 session 中是否存有用户信息

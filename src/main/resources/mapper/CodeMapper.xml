@@ -54,6 +54,9 @@
     <select id="findCodeByPath" resultType="com.example.pojo.Code">
         select * from code where codePath = #{codePath}
     </select>
+    <select id="findCodeByPathandUserId" resultType="com.example.pojo.Code">
+        select * from code where codePath = #{codePath} AND userId = #{userId}
+    </select>
     <select id="findfByName" resultType="com.example.pojo.Code">
         select * from code where codeName=#{codeName};
     </select>

@@ -496,6 +496,8 @@
     <input type="hidden" id="userId" th:value="${user.userId}">
     <input type="hidden" id="codeName" th:value="${codeName}">
     <input type="hidden" id="codeType" th:value="${codeType}">
+    <input type="hidden" id="sessionToken" th:value="${sessionToken}">
+
 
     <form id="uploadForm" enctype="multipart/form-data">
         <label for="fileInput">上传源代码文件:</label>
@@ -615,6 +617,7 @@
     let editor;
     let testCaseEditor;
     const userId = document.getElementById('userId').value;
+    let sessionToken = document.getElementById('sessionToken').value || sessionStorage.getItem('sessionToken');
 
     // 初始化 ACE 编辑器
     function initEditor(language, theme) {
@@ -698,6 +701,7 @@
             formData.append('codeName', codeName);
             formData.append('codeType', codeType);
             formData.append('userId', userId);
+            formData.append('sessionToken', sessionStorage.getItem('sessionToken'));
 
             try {
                 const response = await fetch('/test/uploadContent', {
@@ -706,6 +710,10 @@
                 });
 
                 const result = await response.json();
+                const sessionToken = result.sessionToken;
+                sessionStorage.setItem('sessionToken', sessionToken);
+
+                console.log("保存的 sessionToken 是：", sessionToken);
 
                 const messageDiv = document.getElementById('uploadMessage');
                 if (response.ok) {
@@ -753,6 +761,7 @@
             const blob = new Blob([code], { type: 'text/plain' });
             formData.delete('file');
             formData.append('file', blob, fileName);
+            formData.append('sessionToken', document.getElementById('sessionToken').value);
 
             try {
                 const response = await fetch('/test/upload', {
@@ -761,6 +770,10 @@
                 });
 
                 const result = await response.json();
+                const sessionToken = result.sessionToken;
+                sessionStorage.setItem('sessionToken', sessionToken);
+                console.log("保存的 sessionToken 是：", sessionToken);
+
 
                 const messageDiv = document.getElementById('uploadMessage');
                 if (response.ok) {
@@ -810,10 +823,16 @@
                 }
             });
 
-            const response = await fetch(url, { method: 'POST' });
+            const sessionToken = sessionStorage.getItem('sessionToken');
+            console.log("当前获取的 sessionToken =", sessionToken);
+            const response = await fetch(`${url}?sessionToken=${sessionToken}`, { method: 'POST' });
+
 
             if (response.ok) {
                 const data = await response.json();
+                if (data.sessionToken) {
+                    sessionStorage.setItem('sessionToken', data.sessionToken);
+                }
                 alert(data.message);
 
                 if (data.message.includes("成功")) {
@@ -876,7 +895,7 @@
     // 处理 JaCoCo 测评请求
     async function performJacocoEvaluation() {
         try {
-            const response = await fetch('/api/performJacocoEvaluation', { method: 'POST' });
+            const response = await fetch(`/api/performJacocoEvaluation?sessionToken=${sessionStorage.getItem('sessionToken')}`, { method: 'POST' });
             const data = await response.json();
             alert(data.message);
             const jacocoReportPath = data.jacocoReportPath;
@@ -909,7 +928,7 @@
 
     async function performJacocoEvaluation2() {
         try {
-            const response = await fetch('/api/apiperformJacocoEvaluation', { method: 'POST' });
+            const response = await fetch(`/api/apiperformJacocoEvaluation?sessionToken=${sessionStorage.getItem('sessionToken')}`, { method: 'POST' });
             const data = await response.json();
             alert(data.message);
             const jacocoReportPath = data.jacocoReportPath;
@@ -943,7 +962,7 @@
     // 处理 Python 覆盖率测评请求
     async function performPythonCoverageEvaluation() {
         try {
-            const response = await fetch('/api/performPythonCoverageEvaluation', { method: 'POST' });
+            const response =   await fetch(`/api/performPythonCoverageEvaluation?sessionToken=${sessionStorage.getItem('sessionToken')}`, { method: 'POST' });
             const data = await response.json();
             alert(data.message);
             const coverageReportPath = data.coverageReportPath;
@@ -976,7 +995,8 @@
 
     async function performPythonCoverageEvaluation2() {
         try {
-            const response = await fetch('/api/apiperformPythonCoverageEvaluation', { method: 'POST' });
+            const response =await fetch(`/api/apiperformPythonCoverageEvaluation?sessionToken=${sessionStorage.getItem('sessionToken')}`, { method: 'POST' });
+
             const data = await response.json();
             alert(data.message);
             const coverageReportPath = data.coverageReportPath;

@@ -13,8 +13,8 @@ class CustomEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-# 定义输出保存路径
-output_dir = r"C:\Users\Wangfei\Desktop\new\studentinfo\llm\java"
+# 定义基础输出路径
+base_output_dir = r"C:\Users\Wangfei\Desktop\new\studentinfo\llm\java"
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -28,6 +28,17 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print("文件未找到，请检查文件路径。")
     else:
+        # 提取package语句
+        package_match = re.search(r'package\s+([\w\.]+);', code_content)
+        package_name = None
+        package_path = ""
+        if package_match:
+            package_name = package_match.group(1)
+            package_path = os.path.join(*package_name.split('.'))
+
+        # 构建完整输出目录
+        output_dir = os.path.join(base_output_dir, package_path)
+
         client = ZhipuAI(api_key="1ab053b0d4194225b25b2139ba6fcd68.98mhImT6Nke9ofce")
         response = client.chat.completions.create(
             model="glm-4-plus",
@@ -69,12 +80,27 @@ if __name__ == "__main__":
                     new_class_name = f"{input_file_name}_test"
                     java_code = re.sub(class_pattern, f'public class {new_class_name}', java_code)
 
+                    # 添加package语句到测试用例文件顶部
+                    if package_name:
+                        package_statement = f"package {package_name};\n\n"
+                        # 检查是否已有package语句（避免重复添加）
+                        if not java_code.startswith("package "):
+                            # 查找import语句位置，在其之前插入package
+                            import_index = java_code.find("import ")
+                            if import_index == -1:
+                                # 没有import语句，直接添加到顶部
+                                java_code = package_statement + java_code
+                            else:
+                                # 在import之前插入package
+                                java_code = java_code[:import_index] + package_statement + java_code[import_index:]
+
                     # 创建输出目录（如果不存在）
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
 
                     with open(output_file_path, 'w') as file:
                         file.write(java_code)
+                    print(f"测试用例已保存至: {output_file_path}")
                 else:
                     print("未找到 Java 代码。")
             else:

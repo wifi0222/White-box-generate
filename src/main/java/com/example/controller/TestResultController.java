@@ -25,10 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Controller
 public class TestResultController {
@@ -97,6 +94,12 @@ public class TestResultController {
             // 如果 session 中没有用户信息，表示用户未登录，重定向到登录页面
             return "redirect:/login";
         }
+
+        // 生成唯一 sessionToken
+        String sessionToken = UUID.randomUUID().toString();
+        Map<String, Object> scopedData = new HashMap<>();
+        session.setAttribute("sessionToken_" + sessionToken, scopedData);
+        model.addAttribute("sessionToken", sessionToken); // 给页面使用
 
         User user = userService.findUserByUserId(userId);
         model.addAttribute("user", user);

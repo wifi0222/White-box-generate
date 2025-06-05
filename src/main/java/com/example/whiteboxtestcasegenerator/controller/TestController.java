@@ -10,7 +10,10 @@ import com.example.service.CodeService;
 import com.example.service.TestResultService;
 import com.example.service.UserService;
 
+import com.example.util.SessionScopedUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -39,6 +43,8 @@ public class TestController {
     @Autowired
     private TestResultService testResultService;
 
+    private Integer userID;
+
     @GetMapping("/")
     public String index() {
         return "index";
@@ -48,11 +54,15 @@ public class TestController {
     @ResponseBody
     public Map<String, String> uploadCode(@RequestParam("file") MultipartFile file,
                                           @RequestParam("language") String language, @RequestParam Integer userId,
+                                          @RequestParam("sessionToken") String sessionToken,
                                           HttpSession session, Model model) {
         Map<String, String> response = new HashMap<>();
         System.out.println("检测文件");
+        userID=userId;
 
         try {
+            Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
+
             // 确定子目录路径
             String subDir = language.equals("java") ? "uploaded-code/java" : "uploaded-code/python";
             Path uploadPath = Paths.get(subDir).toAbsolutePath();
@@ -74,11 +84,12 @@ public class TestController {
 
             // 检查文件是否已成功保存
             if (Files.exists(dest)) {
-                session.setAttribute("uploadedFilePath", dest.toString());
-                session.setAttribute("language", language);
+
+                scopedSession.put("uploadedFilePath", dest.toString());
+                scopedSession.put("language", language);
                 response.put("message", "上传成功：" + file.getOriginalFilename());
-
-
+                response.put("sessionToken", sessionToken);
+                System.out.println(sessionToken);
                 Code c=new Code();
                 c.setCodeName(file.getOriginalFilename());
                 c.setCodePath(dest.toString());
@@ -107,6 +118,75 @@ public class TestController {
             } else {
                 response.put("message", "上传失败：文件未成功保存！");
             }
+
+        } catch (IOException e) {
+            System.out.println("上传失败：" + e.getMessage());
+            response.put("message", "上传失败：" + e.getMessage());
+        }
+
+        return response;
+    }
+
+    // 处理通过ID加载的代码内容上传
+    @PostMapping("/test/uploadContent")
+    @ResponseBody
+    public Map<String, String> uploadCodeContent(
+            @RequestParam("codeContent") String codeContent,
+            @RequestParam("codeName") String codeName,
+            @RequestParam("codeType") String codeType,
+            @RequestParam("sessionToken") String sessionToken,
+            @RequestParam Integer userId,
+            HttpSession session, Model model) {
+
+        Map<String, String> response = new HashMap<>();
+        userID=userId;
+
+        try {
+            Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
+            // 确定子目录路径
+            String subDir = codeType.equals(".java") ? "uploaded-code/java" : "uploaded-code/python";
+            Path uploadPath = Paths.get(subDir).toAbsolutePath();
+
+            // 如果目录不存在，则创建目录
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // 构建目标文件路径
+            Path dest = uploadPath.resolve(codeName);
+
+            // 保存代码内容到文件
+            try (BufferedWriter writer = Files.newBufferedWriter(dest, StandardCharsets.UTF_8)) {
+                writer.write(codeContent);
+            }
+
+            scopedSession.put("uploadedFilePath", dest.toString());
+            scopedSession.put("language", codeType.equals(".java") ? "java" : "python");
+            response.put("message", "上传成功：" + codeName);
+            response.put("sessionToken", sessionToken);
+
+            // 更新或插入代码到数据库
+            Code c = codeService.findByName(codeName);
+            if (c == null) {
+                c = new Code();
+                c.setCodeName(codeName);
+            }
+
+            c.setCodePath(dest.toString());
+            c.setCodeType(codeType);
+            LocalDateTime currentDateTime = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String time = currentDateTime.format(formatter);
+            c.setUpdateTime(time);
+            c.setUserId(userId);
+            if (c.getCodeId() == null) {
+                codeService.insertCode(c);
+            } else {
+                codeService.updateCode(c);
+            }
+
+            User user = userService.findUserByUserId(userId);
+            model.addAttribute("user", user);
 
         } catch (IOException e) {
             System.out.println("上传失败：" + e.getMessage());
@@ -224,12 +304,12 @@ public class TestController {
 //    }
     @PostMapping("/api/generateEvoSuiteTest")
     @ResponseBody
-    public Map<String, String> generateEvoSuite(HttpSession session, HttpServletResponse response,Model model) {
-
+    public Map<String, String> generateEvoSuite(@RequestParam("sessionToken") String sessionToken,HttpSession session, HttpServletResponse response,Model model) {
+        Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
         Map<String, String> result = new HashMap<>();
-        String filePath = (String) session.getAttribute("uploadedFilePath");
+        String filePath = (String) scopedSession.get("uploadedFilePath");
+        String language = (String) scopedSession.get("language");
         System.out.println("上传文件路径: " + filePath);
-        String language = (String) session.getAttribute("language");
 
         if (filePath == null || !"java".equals(language)) {
             response.setStatus(400);
@@ -343,13 +423,13 @@ public class TestController {
 
             if (exitCode == 0) {
                 result.put("message", "Java 测试用例生成成功！");
-                session.setAttribute("generatedTestDir", outputDir.toString());
+                scopedSession.put("generatedTestDir", outputDir.toString());
                 // 读取生成的测试用例文件内容
                 Path estestFilePath = findESTestFilePath(Paths.get(outputDir.toString()), className);
                 String testCaseCode = readTestCaseFile(estestFilePath);
                 System.out.println(testCaseCode);
                 result.put("testCaseCode", testCaseCode);
-
+                result.put("sessionToken", sessionToken);
 
                 TestResult r=new TestResult();
                 String codePath=filePath;
@@ -360,7 +440,7 @@ public class TestController {
                 if(c!=null){
                     r.setCodeId(c.getCodeId());
                 }
-                r.setUserId(1);
+                r.setUserId(userID);
                 r.setTestMethod("EvoSuite");
 
                 if(testResultService.findByExamplePath(r.getExamplePath())==null){
@@ -399,12 +479,13 @@ public class TestController {
 
     @PostMapping("/api/performJacocoEvaluation")
     @ResponseBody
-    public Map<String, String> performJacocoEvaluation(HttpSession session, HttpServletResponse response) {
+    public Map<String, String> performJacocoEvaluation(@RequestParam("sessionToken") String sessionToken,HttpSession session, HttpServletResponse response) {
+        Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
         Map<String, String> result = new HashMap<>();
-        String filePath = (String) session.getAttribute("uploadedFilePath");
+        String filePath = (String) scopedSession.get("uploadedFilePath");
         System.out.println(filePath);
-        String language = (String) session.getAttribute("language");
-        String generatedTestDir = (String) session.getAttribute("generatedTestDir");
+        String language = (String) scopedSession.get("language");
+        String generatedTestDir = (String) scopedSession.get("generatedTestDir");
         System.out.println(generatedTestDir);
         if (filePath == null ||!"java".equals(language) || generatedTestDir == null) {
             response.setStatus(400);
@@ -655,7 +736,7 @@ public class TestController {
 
                         Code c=codeService.findCodeByPath(codePath);
                         // 获取测试结果列表
-                        List<TestResult> results = testResultService.findByCodeIdandMethod(c.getCodeId(),"EvoSuite");
+                        List<TestResult> results = testResultService.findByCodeIdandMethodandUserId(c.getCodeId(),"EvoSuite",userID);
                         TestResult r = results.get(0);
                         r.setCodeId(c.getCodeId());
 
@@ -676,6 +757,7 @@ public class TestController {
                     try {
                         result.put("message", "JaCoCo 测评成功！");
                         result.put("jacocoReportPath", htmlFilePath.toString());
+                        result.put("sessionToken", sessionToken);
                     } catch (Exception e) {
                         System.err.println("Error in task 2: " + e.getMessage());
                     }
@@ -707,10 +789,11 @@ public class TestController {
 
     @PostMapping("/api/generatePynguinTest")
     @ResponseBody
-    public Map<String, String> generatePynguinTest(HttpSession session, HttpServletResponse response) {
+    public Map<String, String> generatePynguinTest(@RequestParam("sessionToken") String sessionToken,HttpSession session, HttpServletResponse response) {
+        Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
         Map<String, String> result = new HashMap<>();
-        String filePath = (String) session.getAttribute("uploadedFilePath");
-        String language = (String) session.getAttribute("language");
+        String filePath = (String) scopedSession.get("uploadedFilePath");
+        String language = (String) scopedSession.get("language");
         System.out.println(filePath);
 
         if (filePath == null || !"python".equals(language)) {
@@ -798,6 +881,7 @@ public class TestController {
                 String testCaseCode = readTestCaseFile(outputPath, "test_" + moduleName + ".py");
                 result.put("testCaseCode", testCaseCode);
                 System.out.println(testCaseCode);
+                result.put("sessionToken", sessionToken);
 
                 TestResult r=new TestResult();
                 String codePath=filePath;
@@ -808,7 +892,7 @@ public class TestController {
                 if(c!=null){
                     r.setCodeId(c.getCodeId());
                 }
-                r.setUserId(1);
+                r.setUserId(userID);
                 r.setTestMethod("Pynguin");
 
                 if(testResultService.findByExamplePath(r.getExamplePath())==null){
@@ -830,10 +914,11 @@ public class TestController {
     }
     @PostMapping("/api/performPythonCoverageEvaluation")
     @ResponseBody
-    public Map<String, String> performPythonCoverageEvaluation(HttpSession session, HttpServletResponse response) {
+    public Map<String, String> performPythonCoverageEvaluation(@RequestParam("sessionToken") String sessionToken,HttpSession session, HttpServletResponse response) {
+        Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
         Map<String, String> result = new HashMap<>();
-        String filePath = (String) session.getAttribute("uploadedFilePath");
-        String language = (String) session.getAttribute("language");
+        String filePath = (String) scopedSession.get("uploadedFilePath");
+        String language = (String) scopedSession.get("language");
 
         if (filePath == null || !"python".equals(language)) {
             response.setStatus(400);
@@ -1001,7 +1086,7 @@ public class TestController {
 
                         Code c=codeService.findCodeByPath(codePath);
                         // 获取测试结果列表
-                        List<TestResult> results = testResultService.findByCodeIdandMethod(c.getCodeId(),"Pynguin");
+                        List<TestResult> results = testResultService.findByCodeIdandMethodandUserId(c.getCodeId(),"Pynguin",userID);
                         TestResult r = results.get(0);
                         r.setCodeId(c.getCodeId());
 
@@ -1022,6 +1107,7 @@ public class TestController {
                     try {
                         result.put("message", "Python 覆盖率测评成功！");
                         result.put("coverageReportPath", htmlFilePath.toString());
+                        result.put("sessionToken", sessionToken);
                     } catch (Exception e) {
                         System.err.println("Error in task 2: " + e.getMessage());
                     }
@@ -1113,14 +1199,39 @@ public class TestController {
         return null;
     }
 
+    private Path findtestFilePath(Path evosuiteDir, String className) {
+        if (Files.exists(evosuiteDir) && evosuiteDir.toFile().isDirectory()) {
+            return findtestPathRecursive(evosuiteDir.toFile(), className);
+        }
+        throw new RuntimeException("找不到 _ESTest_scaffolding.java 文件，目录不存在或不是目录");
+    }
+
+    private Path findtestPathRecursive(File directory, String className) {
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    // 递归调用查找子目录
+                    Path result = findtestPathRecursive(file, className);
+                    if (result != null) {
+                        return result;
+                    }
+                } else if (file.getName().equals(className + "_test.java")) {
+                    return file.toPath();
+                }
+            }
+        }
+        return null;
+    }
 
     @PostMapping("/api/generateLLMTest")
     @ResponseBody
-    public Map<String, String> generateLLMTest(HttpSession session, HttpServletResponse response) {
+    public Map<String, String> generateLLMTest(@RequestParam("sessionToken") String sessionToken,HttpSession session, HttpServletResponse response) {
+        Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
         Map<String, String> result = new HashMap<>();
-        String filePath = (String) session.getAttribute("uploadedFilePath");
-        String language = (String) session.getAttribute("language");
-        String fileNameWithoutExtension = session.getAttribute("uploadedFilePath") != null ? Paths.get((String) session.getAttribute("uploadedFilePath")).getFileName().toString().replaceFirst("[.][^.]+$", "") : null;
+        String filePath = (String) scopedSession.get("uploadedFilePath");
+        String language = (String) scopedSession.get("language");
+        String fileNameWithoutExtension = scopedSession.get("uploadedFilePath") != null ? Paths.get((String) scopedSession.get("uploadedFilePath")).getFileName().toString().replaceFirst("[.][^.]+$", "") : null;
 
         if (filePath == null) {
             response.setStatus(400);
@@ -1196,12 +1307,14 @@ public class TestController {
 
             if (process.exitValue() == 0) {
                 result.put("message", "LLM 测试用例生成成功！");
+                result.put("sessionToken", sessionToken);
 
                 // 读取生成的测试用例文件内容
                 String testCaseCode;
                 if ("java".equals(language)) {
                     String outpath = "llm/java";
-                    testCaseCode = readTestCaseFile(Paths.get(outpath), fileNameWithoutExtension +"_test"+ ".java");
+                    Path estestFilePath = findtestFilePath(Paths.get("llm/java/"), fileNameWithoutExtension);
+                    testCaseCode = readTestCaseFile(estestFilePath);
 
                     TestResult r=new TestResult();
                     String codePath=filePath;
@@ -1212,7 +1325,7 @@ public class TestController {
                     if(c!=null){
                         r.setCodeId(c.getCodeId());
                     }
-                    r.setUserId(1);
+                    r.setUserId(userID);
                     r.setTestMethod("javaLLM");
 
                     if(testResultService.findByExamplePath(r.getExamplePath())==null){
@@ -1234,7 +1347,7 @@ public class TestController {
                     if(c!=null){
                         r.setCodeId(c.getCodeId());
                     }
-                    r.setUserId(1);
+                    r.setUserId(userID);
                     r.setTestMethod("pythonLLM");
 
                     if(testResultService.findByExamplePath(r.getExamplePath())==null){
@@ -1265,29 +1378,15 @@ public class TestController {
         return result;
     }
 
-    @PostMapping("/api/performEvaluation")
-    @ResponseBody
-    public Map<String, String> performEvaluation(HttpSession session, HttpServletResponse response) {
-        String language = (String) session.getAttribute("language");
-        if ("java".equals(language)) {
-            return performJacocoEvaluation(session, response);
-        } else if ("python".equals(language)) {
-            return performPythonCoverageEvaluation(session, response);
-        } else {
-            response.setStatus(400);
-            Map<String, String> result = new HashMap<>();
-            result.put("message", "不支持的语言类型！");
-            return result;
-        }
-    }
 
     @PostMapping("/api/apiperformJacocoEvaluation")
     @ResponseBody
-    public Map<String, String> apiperformJacocoEvaluation(HttpSession session, HttpServletResponse response) {
+    public Map<String, String> apiperformJacocoEvaluation(@RequestParam("sessionToken") String sessionToken,HttpSession session, HttpServletResponse response) {
 
+        Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
         Map<String, String> result = new HashMap<>();
-        String filePath = (String) session.getAttribute("uploadedFilePath");
-        String language = (String) session.getAttribute("language");
+        String filePath = (String) scopedSession.get("uploadedFilePath");
+        String language = (String) scopedSession.get("language");
         Path currentDir = Paths.get("").toAbsolutePath();
         Path generatedTestDir = currentDir.resolve("llm/java");
 
@@ -1346,8 +1445,7 @@ public class TestController {
             // 项目源文件路径
             String sourceFilePath = "uploaded-code/java";
 
-            Path estestFilePath = Paths.get("llm/java/" + className + "_test.java");
-
+            Path estestFilePath = findtestFilePath(Paths.get("llm/java/"), className);
             System.out.println(estestFilePath);
 
             // 编译
@@ -1502,6 +1600,7 @@ public class TestController {
 
             executor.shutdown();
             Path htmlFilePath = findHtmlFile(jacocoOutputDir, className + ".html");
+            System.out.println(htmlFilePath);
 
             if (jacocoReportExitCode == 0) {
                 // 创建线程池（建议使用单例或Spring管理）
@@ -1515,7 +1614,7 @@ public class TestController {
 
                         Code c=codeService.findCodeByPath(codePath);
                         // 获取测试结果列表
-                        List<TestResult> results = testResultService.findByCodeIdandMethod(c.getCodeId(),"javaLLM");
+                        List<TestResult> results = testResultService.findByCodeIdandMethodandUserId(c.getCodeId(),"javaLLM",userID);
                         TestResult r = results.get(0);
                         r.setCodeId(c.getCodeId());
 
@@ -1536,6 +1635,7 @@ public class TestController {
                     try {
                         result.put("message", "JaCoCo 测评成功！");
                         result.put("jacocoReportPath", htmlFilePath.toString());
+                        result.put("sessionToken", sessionToken);
                     } catch (Exception e) {
                         System.err.println("Error in task 2: " + e.getMessage());
                     }
@@ -1567,10 +1667,11 @@ public class TestController {
 
     @PostMapping("/api/apiperformPythonCoverageEvaluation")
     @ResponseBody
-    public Map<String, String> apiperformPythonCoverageEvaluation(HttpSession session, HttpServletResponse response) {
+    public Map<String, String> apiperformPythonCoverageEvaluation(@RequestParam("sessionToken") String sessionToken,HttpSession session, HttpServletResponse response) {
+        Map<String, Object> scopedSession = SessionScopedUtil.getScopedSession(session, sessionToken);
         Map<String, String> result = new HashMap<>();
-        String filePath = (String) session.getAttribute("uploadedFilePath");
-        String language = (String) session.getAttribute("language");
+        String filePath = (String) scopedSession.get("uploadedFilePath");
+        String language = (String) scopedSession.get("language");
 
         if (filePath == null || !"python".equals(language)) {
             response.setStatus(400);
@@ -1738,7 +1839,7 @@ public class TestController {
 
                         Code c=codeService.findCodeByPath(codePath);
                         // 获取测试结果列表
-                        List<TestResult> results = testResultService.findByCodeIdandMethod(c.getCodeId(),"pythonLLM");
+                        List<TestResult> results = testResultService.findByCodeIdandMethodandUserId(c.getCodeId(),"pythonLLM",userID);
                         TestResult r = results.get(0);
                         r.setCodeId(c.getCodeId());
 
@@ -1759,6 +1860,7 @@ public class TestController {
                     try {
                         result.put("message", "Python 覆盖率测评成功！");
                         result.put("coverageReportPath", htmlFilePath.toString());
+                        result.put("sessionToken", sessionToken);
                     } catch (Exception e) {
                         System.err.println("Error in task 2: " + e.getMessage());
                     }
